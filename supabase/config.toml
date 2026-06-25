@@ -1,0 +1,13 @@
+project_id = "hhpuvjvjmadecbvhvbln"
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+
+[storage]
+enabled = true
