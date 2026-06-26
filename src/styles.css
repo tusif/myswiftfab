@@ -236,6 +236,12 @@ h3 {
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
 }
 
+.settings-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.46fr);
+}
+
 .customer-workspace {
   display: grid;
   gap: 16px;
@@ -246,7 +252,8 @@ h3 {
 .page-panel,
 .activity-panel,
 .customer-list-panel,
-.customer-detail-panel {
+.customer-detail-panel,
+.settings-panel {
   background: #fff;
   border: 1px solid #dfe3e8;
   border-radius: 8px;
@@ -435,7 +442,18 @@ h3 {
   padding: 18px;
 }
 
+.settings-form {
+  display: grid;
+  gap: 20px;
+  padding: 18px;
+}
+
 .customer-form section {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-form section {
   display: grid;
   gap: 12px;
 }
@@ -445,6 +463,33 @@ h3 {
   color: #23262b;
   font-size: 14px;
   padding-bottom: 8px;
+}
+
+.settings-form h3 {
+  border-bottom: 1px solid #e8ebef;
+  color: #23262b;
+  font-size: 14px;
+  padding-bottom: 8px;
+}
+
+.integration-list {
+  display: grid;
+}
+
+.integration-item {
+  align-items: flex-start;
+  border-bottom: 1px solid #e3e7ec;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+
+.integration-item p {
+  color: #68717d;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 5px;
 }
 
 .form-grid {
@@ -605,6 +650,7 @@ td {
   .metrics-grid,
   .content-grid,
   .page-grid,
+  .settings-grid,
   .kanban,
   .customer-workspace {
     grid-template-columns: 1fr;
@@ -658,6 +704,10 @@ td {
   .topbar-actions,
   .customer-actions {
     width: 100%;
+  }
+
+  .integration-item {
+    flex-direction: column;
   }
 
   h1 {

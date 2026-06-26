@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { hasSupabaseConfig } from "./lib/supabase";
 
-type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices";
+type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "settings";
 
 type Module = {
   id: PageId;
@@ -57,6 +57,7 @@ const modules: Module[] = [
   { id: "materials", title: "Materials", description: "Material library and cutting rates", icon: Factory },
   { id: "purchases", title: "Purchases", description: "Material orders and purchase orders", icon: ShoppingCart },
   { id: "invoices", title: "Invoices", description: "Accounts, GST totals, and MYOB references", icon: BarChart3 },
+  { id: "settings", title: "Settings", description: "Integrations, API access, and account configuration", icon: Settings },
 ];
 
 const metrics = [
@@ -273,9 +274,6 @@ export function App() {
             <div className={hasSupabaseConfig ? "status-dot online" : "status-dot"}>
               {hasSupabaseConfig ? "Supabase connected" : "Add Supabase env"}
             </div>
-            <button className="icon-action" title="Settings" type="button">
-              <Settings size={18} />
-            </button>
           </div>
         </header>
 
@@ -286,6 +284,7 @@ export function App() {
         {activePage === "materials" && <MaterialsPage />}
         {activePage === "purchases" && <PurchasesPage />}
         {activePage === "invoices" && <InvoicesPage />}
+        {activePage === "settings" && <SettingsPage />}
       </section>
     </main>
   );
@@ -600,6 +599,63 @@ function InvoicesPage() {
         ])}
       />
     </PagePanel>
+  );
+}
+
+function SettingsPage() {
+  const integrationSettings = [
+    { name: "Google APIs", status: "Not configured", detail: "Maps, address lookup, Drive, Gmail, or calendar services can be connected here later." },
+    { name: "Supabase", status: hasSupabaseConfig ? "Connected" : "Needs env", detail: "Database URL and anon key are read from deployment environment variables." },
+    { name: "Cloudflare", status: "Connected", detail: "GitHub deployment and domain routing are managed from Cloudflare Workers and Pages." },
+    { name: "MYOB", status: "Future", detail: "Invoice export or accounting sync can be configured when we build accounts integration." },
+  ];
+
+  return (
+    <section className="settings-grid">
+      <PagePanel eyebrow="System" title="Application Settings" actionLabel="Save Settings">
+        <div className="settings-form">
+          <section>
+            <h3>Business Profile</h3>
+            <div className="form-grid two">
+              <Field fieldId="businessName" label="Business name" value="MySwiftFab" />
+              <Field fieldId="timezone" label="Timezone" value="Australia/Perth" />
+              <Field fieldId="defaultTax" label="Default GST" value="10%" />
+              <Field fieldId="quotePrefix" label="Quote prefix" value="400" />
+            </div>
+          </section>
+
+          <section>
+            <h3>API Placeholders</h3>
+            <div className="form-grid two">
+              <Field fieldId="googleApiKey" label="Google API key" value="" />
+              <Field fieldId="mapsApiKey" label="Maps API key" value="" />
+              <Field fieldId="emailProvider" label="Email provider" value="Not configured" />
+              <Field fieldId="accountingProvider" label="Accounting provider" value="Not configured" />
+            </div>
+          </section>
+        </div>
+      </PagePanel>
+
+      <article className="settings-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Integrations</p>
+            <h2>Connection Status</h2>
+          </div>
+        </div>
+        <div className="integration-list">
+          {integrationSettings.map((integration) => (
+            <article className="integration-item" key={integration.name}>
+              <div>
+                <h3>{integration.name}</h3>
+                <p>{integration.detail}</p>
+              </div>
+              <Badge label={integration.status} />
+            </article>
+          ))}
+        </div>
+      </article>
+    </section>
   );
 }
 
