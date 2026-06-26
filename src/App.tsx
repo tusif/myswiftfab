@@ -48,8 +48,16 @@ type Contact = {
   openQuotes: number;
   totalQuoted: string;
   notes: string;
+  notesHistory: ContactNote[];
   staff: StaffMember[];
   deliveryAddresses: DeliveryAddress[];
+};
+
+type ContactNote = {
+  id: string;
+  createdAt: string;
+  author: string;
+  text: string;
 };
 
 type ContactTypeOption = {
@@ -103,6 +111,8 @@ const defaultContactTypes: ContactTypeOption[] = [
   { id: "transport", label: "Transport" },
 ];
 
+const currentUserName = "Current User";
+
 const contacts: Contact[] = [
   {
     id: "willis",
@@ -126,6 +136,10 @@ const contacts: Contact[] = [
     openQuotes: 3,
     totalQuoted: "$18,450",
     notes: "Prefers itemised quote lines with material thickness visible. Send drawings back with revision number.",
+    notesHistory: [
+      { id: "willis-note-1", createdAt: "2026-06-21T02:15:00.000Z", author: "Tusif Ahmad", text: "Anne asked for itemised material thickness on all quote lines." },
+      { id: "willis-note-2", createdAt: "2026-06-24T05:40:00.000Z", author: "Tusif Ahmad", text: "Confirmed Gate 2 delivery is best for large profiles." },
+    ],
     staff: [
       { id: "willis-staff-1", title: "Ms", name: "Anne Willis", jobTitle: "Estimator", direct: "08 9244 1180", mobile: "0412 118 042", email: "anne@willisengineering.com.au" },
       { id: "willis-staff-2", title: "Mr", name: "Mark Willis", jobTitle: "Workshop Manager", direct: "08 9244 1182", mobile: "0412 118 118", email: "mark@willisengineering.com.au" },
@@ -158,6 +172,9 @@ const contacts: Contact[] = [
     openQuotes: 1,
     totalQuoted: "$2,240",
     notes: "Usually supplies DXF files. Confirm pickup timing before converting quote to job.",
+    notesHistory: [
+      { id: "bayside-note-1", createdAt: "2026-06-19T04:05:00.000Z", author: "Tusif Ahmad", text: "Matt prefers pickup once cutting is complete rather than delivery." },
+    ],
     staff: [
       { id: "bayside-staff-1", title: "Mr", name: "Matt Cooper", jobTitle: "Owner", direct: "08 9455 3344", mobile: "0408 455 334", email: "matt@baysidefab.com.au" },
       { id: "bayside-staff-2", title: "", name: "Jenny Allen", jobTitle: "Accounts", direct: "08 9455 3345", mobile: "", email: "accounts@baysidefab.com.au" },
@@ -188,6 +205,9 @@ const contacts: Contact[] = [
     openQuotes: 2,
     totalQuoted: "$9,134",
     notes: "Marine jobs require stainless material certificates and delivery docket copies.",
+    notesHistory: [
+      { id: "henderson-note-1", createdAt: "2026-06-18T06:50:00.000Z", author: "Tusif Ahmad", text: "Project work needs stainless certificates attached to delivery documents." },
+    ],
     staff: [
       { id: "henderson-staff-1", title: "Ms", name: "Priya Nair", jobTitle: "Project Coordinator", direct: "08 9437 8100", mobile: "0430 720 118", email: "priya@hendersonmarine.com.au" },
       { id: "henderson-staff-2", title: "Mr", name: "Graham Lee", jobTitle: "Procurement", direct: "08 9437 8120", mobile: "", email: "procurement@hendersonmarine.com.au" },
@@ -219,6 +239,9 @@ const contacts: Contact[] = [
     openQuotes: 0,
     totalQuoted: "$1,560",
     notes: "Primary source for mild steel sheet. Request eta confirmation before committing rush jobs.",
+    notesHistory: [
+      { id: "laser-metals-note-1", createdAt: "2026-06-20T01:20:00.000Z", author: "Tusif Ahmad", text: "Ask Darren for ETA before accepting urgent mild steel jobs." },
+    ],
     staff: [
       { id: "laser-metals-staff-1", title: "Mr", name: "Darren Ng", jobTitle: "Sales", direct: "08 9300 7782", mobile: "0417 300 778", email: "sales@lasermetalswa.com.au" },
     ],
@@ -251,9 +274,26 @@ function createBlankCustomer(): Contact {
     openQuotes: 0,
     totalQuoted: "$0",
     notes: "",
+    notesHistory: [],
     staff: [],
     deliveryAddresses: [],
   };
+}
+
+function createContactNote(text: string): ContactNote {
+  return {
+    id: `note-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    author: currentUserName,
+    text: text.trim(),
+  };
+}
+
+function formatContactNoteDate(createdAt: string) {
+  return new Intl.DateTimeFormat("en-AU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(createdAt));
 }
 
 function createBlankStaffMember(): StaffMember {
@@ -432,8 +472,9 @@ function DashboardPage() {
 function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   const [contactRecords, setContactRecords] = useState<Contact[]>(contacts);
   const [searchQuery, setSearchQuery] = useState("");
+  const [newNoteText, setNewNoteText] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
-  const [customerDetailTab, setCustomerDetailTab] = useState<"details" | "staff" | "delivery">("details");
+  const [customerDetailTab, setCustomerDetailTab] = useState<"details" | "staff" | "delivery" | "notes">("details");
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const filteredContacts = contactRecords.filter((contact) =>
     [
@@ -519,14 +560,48 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
     }));
   };
 
+  const addContactNote = () => {
+    const note = createContactNote(newNoteText);
+
+    if (!note.text) {
+      return;
+    }
+
+    const nextCustomer = {
+      ...selectedCustomer,
+      notesHistory: [note, ...selectedCustomer.notesHistory],
+    };
+
+    setSelectedCustomer(nextCustomer);
+    setContactRecords((current) =>
+      current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact)),
+    );
+    setNewNoteText("");
+    setCustomerDetailTab("notes");
+  };
+
+  const removeContactNote = (noteId: string) => {
+    const nextCustomer = {
+      ...selectedCustomer,
+      notesHistory: selectedCustomer.notesHistory.filter((note) => note.id !== noteId),
+    };
+
+    setSelectedCustomer(nextCustomer);
+    setContactRecords((current) =>
+      current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact)),
+    );
+  };
+
   const selectCustomer = (contact: Contact) => {
     setSelectedCustomer(contact);
+    setNewNoteText("");
     setCustomerDetailTab("details");
   };
 
   const addCustomer = () => {
     const blankCustomer = createBlankCustomer();
     setSelectedCustomer(blankCustomer);
+    setNewNoteText("");
     setSearchQuery("");
     setCustomerDetailTab("details");
   };
@@ -641,6 +716,13 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
           >
             Delivery ({selectedCustomer.deliveryAddresses.length})
           </button>
+          <button
+            aria-selected={customerDetailTab === "notes"}
+            onClick={() => setCustomerDetailTab("notes")}
+            type="button"
+          >
+            Notes ({selectedCustomer.notesHistory.length})
+          </button>
         </div>
 
         {customerDetailTab === "details" && (
@@ -711,6 +793,16 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
             onAdd={addDeliveryAddress}
             onRemove={removeDeliveryAddress}
             onUpdate={updateDeliveryAddress}
+          />
+        )}
+
+        {customerDetailTab === "notes" && (
+          <ContactNotesPanel
+            newNoteText={newNoteText}
+            notes={selectedCustomer.notesHistory}
+            onAdd={addContactNote}
+            onChange={setNewNoteText}
+            onRemove={removeContactNote}
           />
         )}
       </article>
@@ -1112,6 +1204,73 @@ function EditableDeliveryTable({
             )}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+function ContactNotesPanel({
+  newNoteText,
+  notes,
+  onAdd,
+  onChange,
+  onRemove,
+}: {
+  newNoteText: string;
+  notes: ContactNote[];
+  onAdd: () => void;
+  onChange: (value: string) => void;
+  onRemove: (noteId: string) => void;
+}) {
+  return (
+    <section className="notes-section">
+      <div className="editable-section-heading">
+        <div>
+          <h3>Contact Notes</h3>
+          <p>Record phone calls, quote follow-ups, payment notes, and other dated contact history.</p>
+        </div>
+      </div>
+
+      <div className="note-compose">
+        <Field
+          fieldId="newContactNote"
+          label="New note"
+          onChange={onChange}
+          rows={4}
+          value={newNoteText}
+        />
+        <div className="note-compose-footer">
+          <span>Saved as {currentUserName} with the current date and time.</span>
+          <button className="primary-action" disabled={!newNoteText.trim()} onClick={onAdd} type="button">
+            <Plus size={16} />
+            <span>Add Note</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="note-list" aria-label="Contact notes timeline">
+        {[...notes]
+          .sort((firstNote, secondNote) => new Date(secondNote.createdAt).getTime() - new Date(firstNote.createdAt).getTime())
+          .map((note) => (
+            <article className="note-item" key={note.id}>
+              <div className="note-item-header">
+                <div>
+                  <strong>{note.author}</strong>
+                  <span>{formatContactNoteDate(note.createdAt)}</span>
+                </div>
+                <button className="row-icon-button" onClick={() => onRemove(note.id)} title="Remove note" type="button">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <p>{note.text}</p>
+            </article>
+          ))}
+        {notes.length === 0 && (
+          <div className="note-empty">
+            <strong>No notes yet</strong>
+            <span>Add the first note for this contact.</span>
+          </div>
+        )}
       </div>
     </section>
   );
