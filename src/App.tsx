@@ -12,6 +12,7 @@ import {
   Search,
   Settings,
   ShoppingCart,
+  Trash2,
   Users,
 } from "lucide-react";
 import { hasSupabaseConfig } from "./lib/supabase";
@@ -47,6 +48,28 @@ type Contact = {
   openQuotes: number;
   totalQuoted: string;
   notes: string;
+  staff: StaffMember[];
+  deliveryAddresses: DeliveryAddress[];
+};
+
+type StaffMember = {
+  id: string;
+  title: string;
+  name: string;
+  jobTitle: string;
+  direct: string;
+  mobile: string;
+  email: string;
+};
+
+type DeliveryAddress = {
+  id: string;
+  label: string;
+  address: string;
+  suburb: string;
+  state: string;
+  postcode: string;
+  instructions: string;
 };
 
 const modules: Module[] = [
@@ -90,6 +113,15 @@ const contacts: Contact[] = [
     openQuotes: 3,
     totalQuoted: "$18,450",
     notes: "Prefers itemised quote lines with material thickness visible. Send drawings back with revision number.",
+    staff: [
+      { id: "willis-staff-1", title: "Ms", name: "Anne Willis", jobTitle: "Estimator", direct: "08 9244 1180", mobile: "0412 118 042", email: "anne@willisengineering.com.au" },
+      { id: "willis-staff-2", title: "Mr", name: "Mark Willis", jobTitle: "Workshop Manager", direct: "08 9244 1182", mobile: "0412 118 118", email: "mark@willisengineering.com.au" },
+      { id: "willis-staff-3", title: "", name: "Accounts", jobTitle: "Accounts", direct: "08 9244 1185", mobile: "", email: "accounts@willisengineering.com.au" },
+    ],
+    deliveryAddresses: [
+      { id: "willis-delivery-1", label: "Workshop", address: "Gate 2, 18 Forge Street", suburb: "Malaga", state: "WA", postcode: "6090", instructions: "Forklift available. Call before truck arrival." },
+      { id: "willis-delivery-2", label: "Office", address: "18 Forge Street", suburb: "Malaga", state: "WA", postcode: "6090", instructions: "Small parcels and paperwork only." },
+    ],
   },
   {
     id: "bayside",
@@ -113,6 +145,13 @@ const contacts: Contact[] = [
     openQuotes: 1,
     totalQuoted: "$2,240",
     notes: "Usually supplies DXF files. Confirm pickup timing before converting quote to job.",
+    staff: [
+      { id: "bayside-staff-1", title: "Mr", name: "Matt Cooper", jobTitle: "Owner", direct: "08 9455 3344", mobile: "0408 455 334", email: "matt@baysidefab.com.au" },
+      { id: "bayside-staff-2", title: "", name: "Jenny Allen", jobTitle: "Accounts", direct: "08 9455 3345", mobile: "", email: "accounts@baysidefab.com.au" },
+    ],
+    deliveryAddresses: [
+      { id: "bayside-delivery-1", label: "Factory", address: "Unit 4, 91 Kelvin Road", suburb: "Maddington", state: "WA", postcode: "6109", instructions: "Deliver during business hours." },
+    ],
   },
   {
     id: "henderson",
@@ -136,6 +175,14 @@ const contacts: Contact[] = [
     openQuotes: 2,
     totalQuoted: "$9,134",
     notes: "Marine jobs require stainless material certificates and delivery docket copies.",
+    staff: [
+      { id: "henderson-staff-1", title: "Ms", name: "Priya Nair", jobTitle: "Project Coordinator", direct: "08 9437 8100", mobile: "0430 720 118", email: "priya@hendersonmarine.com.au" },
+      { id: "henderson-staff-2", title: "Mr", name: "Graham Lee", jobTitle: "Procurement", direct: "08 9437 8120", mobile: "", email: "procurement@hendersonmarine.com.au" },
+    ],
+    deliveryAddresses: [
+      { id: "henderson-delivery-1", label: "Workshop 3", address: "22 Sparks Road", suburb: "Henderson", state: "WA", postcode: "6166", instructions: "Use project gate and quote job reference." },
+      { id: "henderson-delivery-2", label: "Stores", address: "Lot 6 Cockburn Road", suburb: "Henderson", state: "WA", postcode: "6166", instructions: "Material certificates required at delivery." },
+    ],
   },
   {
     id: "laser-metals",
@@ -159,6 +206,12 @@ const contacts: Contact[] = [
     openQuotes: 0,
     totalQuoted: "$1,560",
     notes: "Primary source for mild steel sheet. Request eta confirmation before committing rush jobs.",
+    staff: [
+      { id: "laser-metals-staff-1", title: "Mr", name: "Darren Ng", jobTitle: "Sales", direct: "08 9300 7782", mobile: "0417 300 778", email: "sales@lasermetalswa.com.au" },
+    ],
+    deliveryAddresses: [
+      { id: "laser-metals-delivery-1", label: "Warehouse", address: "7 Capital Road", suburb: "Wangara", state: "WA", postcode: "6065", instructions: "Supplier pickup location." },
+    ],
   },
 ];
 
@@ -185,6 +238,32 @@ function createBlankCustomer(): Contact {
     openQuotes: 0,
     totalQuoted: "$0",
     notes: "",
+    staff: [],
+    deliveryAddresses: [],
+  };
+}
+
+function createBlankStaffMember(): StaffMember {
+  return {
+    id: `staff-${Date.now()}`,
+    title: "",
+    name: "",
+    jobTitle: "",
+    direct: "",
+    mobile: "",
+    email: "",
+  };
+}
+
+function createBlankDeliveryAddress(): DeliveryAddress {
+  return {
+    id: `delivery-${Date.now()}`,
+    label: "",
+    address: "",
+    suburb: "",
+    state: "WA",
+    postcode: "",
+    instructions: "",
   };
 }
 
@@ -333,6 +412,7 @@ function ContactsPage() {
   const [contactRecords, setContactRecords] = useState<Contact[]>(contacts);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
+  const [customerDetailTab, setCustomerDetailTab] = useState<"details" | "staff" | "delivery">("details");
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const filteredContacts = contactRecords.filter((contact) =>
     [
@@ -356,14 +436,64 @@ function ContactsPage() {
     }));
   };
 
+  const updateStaffMember = (staffId: string, field: keyof StaffMember, value: string) => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      staff: current.staff.map((staffMember) =>
+        staffMember.id === staffId ? { ...staffMember, [field]: value } : staffMember,
+      ),
+    }));
+  };
+
+  const addStaffMember = () => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      staff: [...current.staff, createBlankStaffMember()],
+    }));
+    setCustomerDetailTab("staff");
+  };
+
+  const removeStaffMember = (staffId: string) => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      staff: current.staff.filter((staffMember) => staffMember.id !== staffId),
+    }));
+  };
+
+  const updateDeliveryAddress = (addressId: string, field: keyof DeliveryAddress, value: string) => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      deliveryAddresses: current.deliveryAddresses.map((address) =>
+        address.id === addressId ? { ...address, [field]: value } : address,
+      ),
+    }));
+  };
+
+  const addDeliveryAddress = () => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      deliveryAddresses: [...current.deliveryAddresses, createBlankDeliveryAddress()],
+    }));
+    setCustomerDetailTab("delivery");
+  };
+
+  const removeDeliveryAddress = (addressId: string) => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      deliveryAddresses: current.deliveryAddresses.filter((address) => address.id !== addressId),
+    }));
+  };
+
   const selectCustomer = (contact: Contact) => {
     setSelectedCustomer(contact);
+    setCustomerDetailTab("details");
   };
 
   const addCustomer = () => {
     const blankCustomer = createBlankCustomer();
     setSelectedCustomer(blankCustomer);
     setSearchQuery("");
+    setCustomerDetailTab("details");
   };
 
   const saveCustomer = () => {
@@ -452,52 +582,96 @@ function ContactsPage() {
           </div>
         </div>
 
-        <form className="customer-form">
-          <section>
-            <h3>Company</h3>
-            <div className="form-grid two">
-              <Field fieldId="company" label="Company name" onChange={(value) => updateSelectedCustomer("company", value)} value={selectedCustomer.company} />
-              <Field fieldId="accountCode" label="Account code" onChange={(value) => updateSelectedCustomer("accountCode", value)} value={selectedCustomer.accountCode} />
-              <Field fieldId="abn" label="ABN" onChange={(value) => updateSelectedCustomer("abn", value)} value={selectedCustomer.abn} />
-              <Field fieldId="kind" label="Customer type" onChange={(value) => updateSelectedCustomer("kind", value)} value={selectedCustomer.kind} />
-              <Field fieldId="phone" label="Phone" onChange={(value) => updateSelectedCustomer("phone", value)} value={selectedCustomer.phone} />
-              <Field fieldId="email" label="Email" onChange={(value) => updateSelectedCustomer("email", value)} value={selectedCustomer.email} />
-              <Field fieldId="website" label="Website" onChange={(value) => updateSelectedCustomer("website", value)} value={selectedCustomer.website} />
-              <Field fieldId="status" label="Status" onChange={(value) => updateSelectedCustomer("status", value)} value={selectedCustomer.status} />
-            </div>
-          </section>
+        <div className="detail-tabs" role="tablist" aria-label="Customer detail sections">
+          <button
+            aria-selected={customerDetailTab === "details"}
+            onClick={() => setCustomerDetailTab("details")}
+            type="button"
+          >
+            Details
+          </button>
+          <button
+            aria-selected={customerDetailTab === "staff"}
+            onClick={() => setCustomerDetailTab("staff")}
+            type="button"
+          >
+            Staff ({selectedCustomer.staff.length})
+          </button>
+          <button
+            aria-selected={customerDetailTab === "delivery"}
+            onClick={() => setCustomerDetailTab("delivery")}
+            type="button"
+          >
+            Delivery ({selectedCustomer.deliveryAddresses.length})
+          </button>
+        </div>
 
-          <section>
-            <h3>Primary Contact</h3>
-            <div className="form-grid three">
-              <Field fieldId="person" label="Name" onChange={(value) => updateSelectedCustomer("person", value)} value={selectedCustomer.person} />
-              <Field fieldId="role" label="Role" onChange={(value) => updateSelectedCustomer("role", value)} value={selectedCustomer.role} />
-              <Field fieldId="mobile" label="Mobile" onChange={(value) => updateSelectedCustomer("mobile", value)} value={selectedCustomer.mobile} />
-            </div>
-          </section>
+        {customerDetailTab === "details" && (
+          <form className="customer-form">
+            <section>
+              <h3>Company</h3>
+              <div className="form-grid two">
+                <Field fieldId="company" label="Company name" onChange={(value) => updateSelectedCustomer("company", value)} value={selectedCustomer.company} />
+                <Field fieldId="accountCode" label="Account code" onChange={(value) => updateSelectedCustomer("accountCode", value)} value={selectedCustomer.accountCode} />
+                <Field fieldId="abn" label="ABN" onChange={(value) => updateSelectedCustomer("abn", value)} value={selectedCustomer.abn} />
+                <Field fieldId="kind" label="Customer type" onChange={(value) => updateSelectedCustomer("kind", value)} value={selectedCustomer.kind} />
+                <Field fieldId="phone" label="Phone" onChange={(value) => updateSelectedCustomer("phone", value)} value={selectedCustomer.phone} />
+                <Field fieldId="email" label="Email" onChange={(value) => updateSelectedCustomer("email", value)} value={selectedCustomer.email} />
+                <Field fieldId="website" label="Website" onChange={(value) => updateSelectedCustomer("website", value)} value={selectedCustomer.website} />
+                <Field fieldId="status" label="Status" onChange={(value) => updateSelectedCustomer("status", value)} value={selectedCustomer.status} />
+              </div>
+            </section>
 
-          <section>
-            <h3>Address</h3>
-            <div className="form-grid two">
-              <Field fieldId="billingAddress" label="Billing address" onChange={(value) => updateSelectedCustomer("billingAddress", value)} rows={3} value={selectedCustomer.billingAddress} />
-              <Field fieldId="deliveryAddress" label="Delivery address" onChange={(value) => updateSelectedCustomer("deliveryAddress", value)} rows={3} value={selectedCustomer.deliveryAddress} />
-            </div>
-          </section>
+            <section>
+              <h3>Primary Contact</h3>
+              <div className="form-grid three">
+                <Field fieldId="person" label="Name" onChange={(value) => updateSelectedCustomer("person", value)} value={selectedCustomer.person} />
+                <Field fieldId="role" label="Role" onChange={(value) => updateSelectedCustomer("role", value)} value={selectedCustomer.role} />
+                <Field fieldId="mobile" label="Mobile" onChange={(value) => updateSelectedCustomer("mobile", value)} value={selectedCustomer.mobile} />
+              </div>
+            </section>
 
-          <section>
-            <h3>Accounts and Pricing</h3>
-            <div className="form-grid three">
-              <Field fieldId="terms" label="Payment terms" onChange={(value) => updateSelectedCustomer("terms", value)} value={selectedCustomer.terms} />
-              <Field fieldId="creditLimit" label="Credit limit" onChange={(value) => updateSelectedCustomer("creditLimit", value)} value={selectedCustomer.creditLimit} />
-              <Field fieldId="priceLevel" label="Price level" onChange={(value) => updateSelectedCustomer("priceLevel", value)} value={selectedCustomer.priceLevel} />
-            </div>
-          </section>
+            <section>
+              <h3>Address</h3>
+              <div className="form-grid two">
+                <Field fieldId="billingAddress" label="Billing address" onChange={(value) => updateSelectedCustomer("billingAddress", value)} rows={3} value={selectedCustomer.billingAddress} />
+                <Field fieldId="deliveryAddress" label="Default delivery address" onChange={(value) => updateSelectedCustomer("deliveryAddress", value)} rows={3} value={selectedCustomer.deliveryAddress} />
+              </div>
+            </section>
 
-          <section>
-            <h3>Notes</h3>
-            <Field fieldId="notes" label="Internal notes" onChange={(value) => updateSelectedCustomer("notes", value)} rows={4} value={selectedCustomer.notes} />
-          </section>
-        </form>
+            <section>
+              <h3>Accounts and Pricing</h3>
+              <div className="form-grid three">
+                <Field fieldId="terms" label="Payment terms" onChange={(value) => updateSelectedCustomer("terms", value)} value={selectedCustomer.terms} />
+                <Field fieldId="creditLimit" label="Credit limit" onChange={(value) => updateSelectedCustomer("creditLimit", value)} value={selectedCustomer.creditLimit} />
+                <Field fieldId="priceLevel" label="Price level" onChange={(value) => updateSelectedCustomer("priceLevel", value)} value={selectedCustomer.priceLevel} />
+              </div>
+            </section>
+
+            <section>
+              <h3>Notes</h3>
+              <Field fieldId="notes" label="Internal notes" onChange={(value) => updateSelectedCustomer("notes", value)} rows={4} value={selectedCustomer.notes} />
+            </section>
+          </form>
+        )}
+
+        {customerDetailTab === "staff" && (
+          <EditableStaffTable
+            onAdd={addStaffMember}
+            onRemove={removeStaffMember}
+            onUpdate={updateStaffMember}
+            staff={selectedCustomer.staff}
+          />
+        )}
+
+        {customerDetailTab === "delivery" && (
+          <EditableDeliveryTable
+            addresses={selectedCustomer.deliveryAddresses}
+            onAdd={addDeliveryAddress}
+            onRemove={removeDeliveryAddress}
+            onUpdate={updateDeliveryAddress}
+          />
+        )}
       </article>
     </section>
   );
@@ -655,6 +829,164 @@ function SettingsPage() {
           ))}
         </div>
       </article>
+    </section>
+  );
+}
+
+function EditableStaffTable({
+  onAdd,
+  onRemove,
+  onUpdate,
+  staff,
+}: {
+  onAdd: () => void;
+  onRemove: (staffId: string) => void;
+  onUpdate: (staffId: string, field: keyof StaffMember, value: string) => void;
+  staff: StaffMember[];
+}) {
+  return (
+    <section className="editable-section">
+      <div className="editable-section-heading">
+        <div>
+          <h3>Staff Members</h3>
+          <p>Store all estimators, accounts contacts, workshop people, and other staff for this company.</p>
+        </div>
+        <button className="secondary-action" onClick={onAdd} type="button">
+          <Plus size={16} />
+          <span>Add Staff</span>
+        </button>
+      </div>
+
+      <div className="editable-table-wrap">
+        <table className="editable-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Name</th>
+              <th>Job Title</th>
+              <th>Direct</th>
+              <th>Mobile</th>
+              <th>Email</th>
+              <th aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {staff.map((staffMember) => (
+              <tr key={staffMember.id}>
+                <td>
+                  <input value={staffMember.title} onChange={(event) => onUpdate(staffMember.id, "title", event.target.value)} />
+                </td>
+                <td>
+                  <input value={staffMember.name} onChange={(event) => onUpdate(staffMember.id, "name", event.target.value)} />
+                </td>
+                <td>
+                  <input value={staffMember.jobTitle} onChange={(event) => onUpdate(staffMember.id, "jobTitle", event.target.value)} />
+                </td>
+                <td>
+                  <input value={staffMember.direct} onChange={(event) => onUpdate(staffMember.id, "direct", event.target.value)} />
+                </td>
+                <td>
+                  <input value={staffMember.mobile} onChange={(event) => onUpdate(staffMember.id, "mobile", event.target.value)} />
+                </td>
+                <td>
+                  <input value={staffMember.email} onChange={(event) => onUpdate(staffMember.id, "email", event.target.value)} />
+                </td>
+                <td>
+                  <button className="row-icon-button" onClick={() => onRemove(staffMember.id)} title="Remove staff member" type="button">
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {staff.length === 0 && (
+              <tr>
+                <td colSpan={7}>
+                  <div className="table-empty">No staff members yet.</div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function EditableDeliveryTable({
+  addresses,
+  onAdd,
+  onRemove,
+  onUpdate,
+}: {
+  addresses: DeliveryAddress[];
+  onAdd: () => void;
+  onRemove: (addressId: string) => void;
+  onUpdate: (addressId: string, field: keyof DeliveryAddress, value: string) => void;
+}) {
+  return (
+    <section className="editable-section">
+      <div className="editable-section-heading">
+        <div>
+          <h3>Delivery Addresses</h3>
+          <p>Keep separate workshop, site, office, and pickup addresses for the same customer.</p>
+        </div>
+        <button className="secondary-action" onClick={onAdd} type="button">
+          <Plus size={16} />
+          <span>Add Address</span>
+        </button>
+      </div>
+
+      <div className="editable-table-wrap">
+        <table className="editable-table delivery-table">
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Address</th>
+              <th>Suburb</th>
+              <th>State</th>
+              <th>Postcode</th>
+              <th>Instructions</th>
+              <th aria-label="Actions" />
+            </tr>
+          </thead>
+          <tbody>
+            {addresses.map((address) => (
+              <tr key={address.id}>
+                <td>
+                  <input value={address.label} onChange={(event) => onUpdate(address.id, "label", event.target.value)} />
+                </td>
+                <td>
+                  <input value={address.address} onChange={(event) => onUpdate(address.id, "address", event.target.value)} />
+                </td>
+                <td>
+                  <input value={address.suburb} onChange={(event) => onUpdate(address.id, "suburb", event.target.value)} />
+                </td>
+                <td>
+                  <input value={address.state} onChange={(event) => onUpdate(address.id, "state", event.target.value)} />
+                </td>
+                <td>
+                  <input value={address.postcode} onChange={(event) => onUpdate(address.id, "postcode", event.target.value)} />
+                </td>
+                <td>
+                  <input value={address.instructions} onChange={(event) => onUpdate(address.id, "instructions", event.target.value)} />
+                </td>
+                <td>
+                  <button className="row-icon-button" onClick={() => onRemove(address.id)} title="Remove delivery address" type="button">
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {addresses.length === 0 && (
+              <tr>
+                <td colSpan={7}>
+                  <div className="table-empty">No delivery addresses yet.</div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

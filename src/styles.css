@@ -436,6 +436,33 @@ h3 {
   font-size: 15px;
 }
 
+.detail-tabs {
+  background: #f7f8fa;
+  border-bottom: 1px solid #e3e7ec;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 0 18px;
+}
+
+.detail-tabs button {
+  background: transparent;
+  border: 0;
+  border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
+  color: #343943;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 18px;
+  white-space: nowrap;
+}
+
+.detail-tabs button[aria-selected="true"] {
+  background: #f57c20;
+  border-color: #d5671b;
+  color: #fff;
+}
+
 .customer-form {
   display: grid;
   gap: 20px;
@@ -470,6 +497,100 @@ h3 {
   color: #23262b;
   font-size: 14px;
   padding-bottom: 8px;
+}
+
+.editable-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.editable-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.editable-section-heading p {
+  color: #68717d;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.editable-table-wrap {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.editable-table {
+  min-width: 920px;
+}
+
+.editable-table th {
+  background: #3f1853;
+}
+
+.editable-table td {
+  background: #fff7a6;
+  padding: 5px;
+}
+
+.editable-table input {
+  background: rgb(255 255 255 / 66%);
+  border: 1px solid rgb(80 49 95 / 18%);
+  border-radius: 4px;
+  color: #202024;
+  min-height: 32px;
+  outline: none;
+  padding: 5px 7px;
+  width: 100%;
+}
+
+.editable-table input:focus {
+  background: #fff;
+  border-color: #f57c20;
+  box-shadow: 0 0 0 2px rgb(245 124 32 / 16%);
+}
+
+.editable-table td:last-child {
+  background: #fff;
+  text-align: center;
+  width: 52px;
+}
+
+.delivery-table {
+  min-width: 1060px;
+}
+
+.row-icon-button {
+  align-items: center;
+  background: #eef7f5;
+  border: 1px solid #cde7df;
+  border-radius: 999px;
+  color: #0f766e;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.row-icon-button:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.table-empty {
+  align-items: center;
+  background: #f7f8fa;
+  color: #68717d;
+  display: flex;
+  font-weight: 750;
+  min-height: 70px;
+  padding: 16px;
 }
 
 .integration-list {
@@ -696,7 +817,8 @@ td {
 
   .topbar,
   .panel-heading,
-  .customer-detail-header {
+  .customer-detail-header,
+  .editable-section-heading {
     align-items: flex-start;
     flex-direction: column;
   }
