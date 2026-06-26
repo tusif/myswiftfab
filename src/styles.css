@@ -499,6 +499,97 @@ h3 {
   padding-bottom: 8px;
 }
 
+.checkbox-fieldset {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+}
+
+.checkbox-fieldset legend {
+  color: #68717d;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkbox-option {
+  align-items: center;
+  background: #f7f8fa;
+  border: 1px solid #dfe3e8;
+  border-radius: 999px;
+  color: #343943;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.checkbox-option input {
+  accent-color: #f57c20;
+}
+
+.settings-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.settings-section-heading p {
+  color: #68717d;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.lookup-list {
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  display: grid;
+  overflow: hidden;
+}
+
+.lookup-row {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e3e7ec;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.lookup-row:last-child {
+  border-bottom: 0;
+}
+
+.lookup-row input {
+  background: #fff;
+  border: 1px solid #d7dce2;
+  border-radius: 8px;
+  color: #202024;
+  min-height: 38px;
+  outline: none;
+  padding: 0 11px;
+  width: 100%;
+}
+
+.lookup-row input:focus {
+  border-color: #f57c20;
+  box-shadow: 0 0 0 3px rgb(245 124 32 / 16%);
+}
+
 .editable-section {
   display: grid;
   gap: 14px;
@@ -818,7 +909,8 @@ td {
   .topbar,
   .panel-heading,
   .customer-detail-header,
-  .editable-section-heading {
+  .editable-section-heading,
+  .settings-section-heading {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -52,6 +52,11 @@ type Contact = {
   deliveryAddresses: DeliveryAddress[];
 };
 
+type ContactTypeOption = {
+  id: string;
+  label: string;
+};
+
 type StaffMember = {
   id: string;
   title: string;
@@ -90,11 +95,19 @@ const metrics = [
   { label: "Invoices", value: "9", note: "$21.4k pending", icon: BarChart3, trend: "4 sent" },
 ];
 
+const defaultContactTypes: ContactTypeOption[] = [
+  { id: "client", label: "Client" },
+  { id: "contact", label: "Contact" },
+  { id: "supplier", label: "Supplier" },
+  { id: "subcontractor", label: "SubContractor" },
+  { id: "transport", label: "Transport" },
+];
+
 const contacts: Contact[] = [
   {
     id: "willis",
     company: "Willis Engineering",
-    kind: "Customer",
+    kind: "Client",
     status: "Active",
     accountCode: "WILLIS",
     abn: "42 188 924 771",
@@ -126,7 +139,7 @@ const contacts: Contact[] = [
   {
     id: "bayside",
     company: "Bayside Fabrication",
-    kind: "Customer",
+    kind: "Client",
     status: "Follow up",
     accountCode: "BAYSIDE",
     abn: "71 624 118 093",
@@ -156,7 +169,7 @@ const contacts: Contact[] = [
   {
     id: "henderson",
     company: "Henderson Marine",
-    kind: "Customer",
+    kind: "Client",
     status: "Active",
     accountCode: "HENDER",
     abn: "38 552 740 196",
@@ -219,7 +232,7 @@ function createBlankCustomer(): Contact {
   return {
     id: `new-${Date.now()}`,
     company: "New Customer",
-    kind: "Customer",
+    kind: "Client",
     status: "New",
     accountCode: "",
     abn: "",
@@ -265,6 +278,13 @@ function createBlankDeliveryAddress(): DeliveryAddress {
     postcode: "",
     instructions: "",
   };
+}
+
+function splitContactTypes(kind: string) {
+  return kind
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 const quotes = [
@@ -313,6 +333,7 @@ const currency = new Intl.NumberFormat("en-AU", {
 
 export function App() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
+  const [contactTypes, setContactTypes] = useState<ContactTypeOption[]>(defaultContactTypes);
   const currentModule = useMemo(
     () => modules.find((module) => module.id === activePage) ?? modules[0],
     [activePage],
@@ -357,13 +378,13 @@ export function App() {
         </header>
 
         {activePage === "dashboard" && <DashboardPage />}
-        {activePage === "contacts" && <ContactsPage />}
+        {activePage === "contacts" && <ContactsPage contactTypes={contactTypes} />}
         {activePage === "quotes" && <QuotesPage />}
         {activePage === "jobs" && <JobsPage />}
         {activePage === "materials" && <MaterialsPage />}
         {activePage === "purchases" && <PurchasesPage />}
         {activePage === "invoices" && <InvoicesPage />}
-        {activePage === "settings" && <SettingsPage />}
+        {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} />}
       </section>
     </main>
   );
@@ -408,7 +429,7 @@ function DashboardPage() {
   );
 }
 
-function ContactsPage() {
+function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   const [contactRecords, setContactRecords] = useState<Contact[]>(contacts);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
@@ -434,6 +455,20 @@ function ContactsPage() {
       ...current,
       [field]: field === "openQuotes" ? Number(value) || 0 : value,
     }));
+  };
+
+  const updateSelectedContactType = (typeLabel: string, checked: boolean) => {
+    setSelectedCustomer((current) => {
+      const selectedTypes = splitContactTypes(current.kind);
+      const nextTypes = checked
+        ? [...selectedTypes, typeLabel]
+        : selectedTypes.filter((selectedType) => selectedType !== typeLabel);
+
+      return {
+        ...current,
+        kind: Array.from(new Set(nextTypes)).join(", "),
+      };
+    });
   };
 
   const updateStaffMember = (staffId: string, field: keyof StaffMember, value: string) => {
@@ -533,7 +568,9 @@ function ContactsPage() {
               <span className="customer-name">{contact.company}</span>
               <span>{contact.person} - {contact.phone}</span>
               <span className="customer-row-meta">
-                <Badge label={contact.kind} />
+                {splitContactTypes(contact.kind).map((contactType) => (
+                  <Badge key={contactType} label={contactType} />
+                ))}
                 <Badge label={contact.status} />
               </span>
             </button>
@@ -612,15 +649,19 @@ function ContactsPage() {
               <h3>Company</h3>
               <div className="form-grid two">
                 <Field fieldId="company" label="Company name" onChange={(value) => updateSelectedCustomer("company", value)} value={selectedCustomer.company} />
-                <Field fieldId="accountCode" label="Account code" onChange={(value) => updateSelectedCustomer("accountCode", value)} value={selectedCustomer.accountCode} />
-                <Field fieldId="abn" label="ABN" onChange={(value) => updateSelectedCustomer("abn", value)} value={selectedCustomer.abn} />
-                <Field fieldId="kind" label="Customer type" onChange={(value) => updateSelectedCustomer("kind", value)} value={selectedCustomer.kind} />
-                <Field fieldId="phone" label="Phone" onChange={(value) => updateSelectedCustomer("phone", value)} value={selectedCustomer.phone} />
-                <Field fieldId="email" label="Email" onChange={(value) => updateSelectedCustomer("email", value)} value={selectedCustomer.email} />
-                <Field fieldId="website" label="Website" onChange={(value) => updateSelectedCustomer("website", value)} value={selectedCustomer.website} />
-                <Field fieldId="status" label="Status" onChange={(value) => updateSelectedCustomer("status", value)} value={selectedCustomer.status} />
-              </div>
-            </section>
+              <Field fieldId="accountCode" label="Account code" onChange={(value) => updateSelectedCustomer("accountCode", value)} value={selectedCustomer.accountCode} />
+              <Field fieldId="abn" label="ABN" onChange={(value) => updateSelectedCustomer("abn", value)} value={selectedCustomer.abn} />
+              <Field fieldId="phone" label="Phone" onChange={(value) => updateSelectedCustomer("phone", value)} value={selectedCustomer.phone} />
+              <Field fieldId="email" label="Email" onChange={(value) => updateSelectedCustomer("email", value)} value={selectedCustomer.email} />
+              <Field fieldId="website" label="Website" onChange={(value) => updateSelectedCustomer("website", value)} value={selectedCustomer.website} />
+              <Field fieldId="status" label="Status" onChange={(value) => updateSelectedCustomer("status", value)} value={selectedCustomer.status} />
+            </div>
+              <ContactTypeCheckboxes
+                contactTypes={contactTypes}
+                selectedTypes={splitContactTypes(selectedCustomer.kind)}
+                onChange={updateSelectedContactType}
+              />
+          </section>
 
             <section>
               <h3>Primary Contact</h3>
@@ -776,7 +817,41 @@ function InvoicesPage() {
   );
 }
 
-function SettingsPage() {
+function ContactTypeCheckboxes({
+  contactTypes,
+  onChange,
+  selectedTypes,
+}: {
+  contactTypes: ContactTypeOption[];
+  onChange: (typeLabel: string, checked: boolean) => void;
+  selectedTypes: string[];
+}) {
+  return (
+    <fieldset className="checkbox-fieldset">
+      <legend>Contact type</legend>
+      <div className="checkbox-grid">
+        {contactTypes.map((contactType) => (
+          <label className="checkbox-option" key={contactType.id}>
+            <input
+              checked={selectedTypes.includes(contactType.label)}
+              onChange={(event) => onChange(contactType.label, event.target.checked)}
+              type="checkbox"
+            />
+            <span>{contactType.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function SettingsPage({
+  contactTypes,
+  onContactTypesChange,
+}: {
+  contactTypes: ContactTypeOption[];
+  onContactTypesChange: (contactTypes: ContactTypeOption[]) => void;
+}) {
   const integrationSettings = [
     { name: "Google APIs", status: "Not configured", detail: "Maps, address lookup, Drive, Gmail, or calendar services can be connected here later." },
     { name: "Supabase", status: hasSupabaseConfig ? "Connected" : "Needs env", detail: "Database URL and anon key are read from deployment environment variables." },
@@ -784,10 +859,61 @@ function SettingsPage() {
     { name: "MYOB", status: "Future", detail: "Invoice export or accounting sync can be configured when we build accounts integration." },
   ];
 
+  const addContactType = () => {
+    onContactTypesChange([
+      ...contactTypes,
+      { id: `contact-type-${Date.now()}`, label: "New Type" },
+    ]);
+  };
+
+  const updateContactType = (contactTypeId: string, label: string) => {
+    onContactTypesChange(
+      contactTypes.map((contactType) =>
+        contactType.id === contactTypeId ? { ...contactType, label } : contactType,
+      ),
+    );
+  };
+
+  const removeContactType = (contactTypeId: string) => {
+    onContactTypesChange(contactTypes.filter((contactType) => contactType.id !== contactTypeId));
+  };
+
   return (
     <section className="settings-grid">
       <PagePanel eyebrow="System" title="Application Settings" actionLabel="Save Settings">
         <div className="settings-form">
+          <section>
+            <div className="settings-section-heading">
+              <div>
+                <h3>Contact Type Lookup</h3>
+                <p>These options appear as checkboxes when creating or editing contacts.</p>
+              </div>
+              <button className="secondary-action" onClick={addContactType} type="button">
+                <Plus size={16} />
+                <span>Add Type</span>
+              </button>
+            </div>
+            <div className="lookup-list">
+              {contactTypes.map((contactType) => (
+                <div className="lookup-row" key={contactType.id}>
+                  <input
+                    aria-label={`Contact type ${contactType.label}`}
+                    onChange={(event) => updateContactType(contactType.id, event.target.value)}
+                    value={contactType.label}
+                  />
+                  <button
+                    className="row-icon-button"
+                    onClick={() => removeContactType(contactType.id)}
+                    title="Remove contact type"
+                    type="button"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
           <section>
             <h3>Business Profile</h3>
             <div className="form-grid two">
@@ -1122,6 +1248,7 @@ function Field({
         <textarea
           data-testid={`customer-${fieldId}`}
           onChange={(event) => onChange?.(event.target.value)}
+          readOnly={!onChange}
           rows={rows}
           value={value}
         />
@@ -1129,6 +1256,7 @@ function Field({
         <input
           data-testid={`customer-${fieldId}`}
           onChange={(event) => onChange?.(event.target.value)}
+          readOnly={!onChange}
           value={value}
         />
       )}
