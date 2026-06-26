@@ -25,6 +25,30 @@ type Module = {
   icon: typeof Gauge;
 };
 
+type Contact = {
+  id: string;
+  company: string;
+  kind: string;
+  status: string;
+  accountCode: string;
+  abn: string;
+  phone: string;
+  email: string;
+  website: string;
+  person: string;
+  role: string;
+  mobile: string;
+  billingAddress: string;
+  deliveryAddress: string;
+  terms: string;
+  creditLimit: string;
+  priceLevel: string;
+  lastQuote: string;
+  openQuotes: number;
+  totalQuoted: string;
+  notes: string;
+};
+
 const modules: Module[] = [
   { id: "dashboard", title: "Dashboard", description: "Daily estimating and production view", icon: Gauge },
   { id: "contacts", title: "Contacts", description: "Clients, suppliers, transport, and people", icon: Users },
@@ -42,7 +66,7 @@ const metrics = [
   { label: "Invoices", value: "9", note: "$21.4k pending", icon: BarChart3, trend: "4 sent" },
 ];
 
-const contacts = [
+const contacts: Contact[] = [
   {
     id: "willis",
     company: "Willis Engineering",
@@ -136,6 +160,32 @@ const contacts = [
     notes: "Primary source for mild steel sheet. Request eta confirmation before committing rush jobs.",
   },
 ];
+
+function createBlankCustomer(): Contact {
+  return {
+    id: `new-${Date.now()}`,
+    company: "New Customer",
+    kind: "Customer",
+    status: "New",
+    accountCode: "",
+    abn: "",
+    phone: "",
+    email: "",
+    website: "",
+    person: "",
+    role: "",
+    mobile: "",
+    billingAddress: "",
+    deliveryAddress: "",
+    terms: "30 days",
+    creditLimit: "$0",
+    priceLevel: "Standard",
+    lastQuote: "None",
+    openQuotes: 0,
+    totalQuoted: "$0",
+    notes: "",
+  };
+}
 
 const quotes = [
   { quote: "400120", client: "Willis Engineering", status: "Draft", lines: 8, total: 4814.35, margin: "34%" },
@@ -281,22 +331,74 @@ function DashboardPage() {
 }
 
 function ContactsPage() {
-  const customers = contacts.filter((contact) => contact.kind === "Customer");
-  const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id ?? contacts[0].id);
-  const selectedCustomer = contacts.find((contact) => contact.id === selectedCustomerId) ?? contacts[0];
+  const [contactRecords, setContactRecords] = useState<Contact[]>(contacts);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredContacts = contactRecords.filter((contact) =>
+    [
+      contact.company,
+      contact.person,
+      contact.phone,
+      contact.email,
+      contact.kind,
+      contact.status,
+      contact.accountCode,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedSearch),
+  );
+
+  const updateSelectedCustomer = (field: keyof Contact, value: string) => {
+    setSelectedCustomer((current) => ({
+      ...current,
+      [field]: field === "openQuotes" ? Number(value) || 0 : value,
+    }));
+  };
+
+  const selectCustomer = (contact: Contact) => {
+    setSelectedCustomer(contact);
+  };
+
+  const addCustomer = () => {
+    const blankCustomer = createBlankCustomer();
+    setSelectedCustomer(blankCustomer);
+    setSearchQuery("");
+  };
+
+  const saveCustomer = () => {
+    setContactRecords((current) => {
+      const existingIndex = current.findIndex((contact) => contact.id === selectedCustomer.id);
+      if (existingIndex === -1) {
+        return [selectedCustomer, ...current];
+      }
+
+      return current.map((contact) => (contact.id === selectedCustomer.id ? selectedCustomer : contact));
+    });
+  };
 
   return (
     <section className="customer-workspace">
       <article className="customer-list-panel">
-        <PanelHeading eyebrow="Customers" title="Customer List" actionLabel="Add Customer" />
-        <Toolbar placeholder="Search customer, contact, or phone" />
+        <PanelHeading
+          actionLabel="Add Customer"
+          eyebrow="Customers"
+          onAction={addCustomer}
+          title="Customer List"
+        />
+        <Toolbar
+          onChange={setSearchQuery}
+          placeholder="Search customer, contact, or phone"
+          value={searchQuery}
+        />
         <div className="customer-list" aria-label="Customer list">
-          {contacts.map((contact) => (
+          {filteredContacts.map((contact) => (
             <button
               aria-current={selectedCustomer.id === contact.id ? "true" : undefined}
               className="customer-list-item"
               key={contact.id}
-              onClick={() => setSelectedCustomerId(contact.id)}
+              onClick={() => selectCustomer(contact)}
               type="button"
             >
               <span className="customer-name">{contact.company}</span>
@@ -307,6 +409,12 @@ function ContactsPage() {
               </span>
             </button>
           ))}
+          {filteredContacts.length === 0 && (
+            <div className="empty-state">
+              <strong>No customers found</strong>
+              <span>Try a different company, contact, phone, or account code.</span>
+            </div>
+          )}
         </div>
       </article>
 
@@ -319,7 +427,7 @@ function ContactsPage() {
           </div>
           <div className="customer-actions">
             <button className="secondary-action" type="button">New Quote</button>
-            <button className="primary-action" type="button">
+            <button className="primary-action" onClick={saveCustomer} type="button">
               <Plus size={16} />
               <span>Save</span>
             </button>
@@ -349,46 +457,46 @@ function ContactsPage() {
           <section>
             <h3>Company</h3>
             <div className="form-grid two">
-              <Field label="Company name" value={selectedCustomer.company} />
-              <Field label="Account code" value={selectedCustomer.accountCode} />
-              <Field label="ABN" value={selectedCustomer.abn} />
-              <Field label="Customer type" value={selectedCustomer.kind} />
-              <Field label="Phone" value={selectedCustomer.phone} />
-              <Field label="Email" value={selectedCustomer.email} />
-              <Field label="Website" value={selectedCustomer.website} />
-              <Field label="Status" value={selectedCustomer.status} />
+              <Field fieldId="company" label="Company name" onChange={(value) => updateSelectedCustomer("company", value)} value={selectedCustomer.company} />
+              <Field fieldId="accountCode" label="Account code" onChange={(value) => updateSelectedCustomer("accountCode", value)} value={selectedCustomer.accountCode} />
+              <Field fieldId="abn" label="ABN" onChange={(value) => updateSelectedCustomer("abn", value)} value={selectedCustomer.abn} />
+              <Field fieldId="kind" label="Customer type" onChange={(value) => updateSelectedCustomer("kind", value)} value={selectedCustomer.kind} />
+              <Field fieldId="phone" label="Phone" onChange={(value) => updateSelectedCustomer("phone", value)} value={selectedCustomer.phone} />
+              <Field fieldId="email" label="Email" onChange={(value) => updateSelectedCustomer("email", value)} value={selectedCustomer.email} />
+              <Field fieldId="website" label="Website" onChange={(value) => updateSelectedCustomer("website", value)} value={selectedCustomer.website} />
+              <Field fieldId="status" label="Status" onChange={(value) => updateSelectedCustomer("status", value)} value={selectedCustomer.status} />
             </div>
           </section>
 
           <section>
             <h3>Primary Contact</h3>
             <div className="form-grid three">
-              <Field label="Name" value={selectedCustomer.person} />
-              <Field label="Role" value={selectedCustomer.role} />
-              <Field label="Mobile" value={selectedCustomer.mobile} />
+              <Field fieldId="person" label="Name" onChange={(value) => updateSelectedCustomer("person", value)} value={selectedCustomer.person} />
+              <Field fieldId="role" label="Role" onChange={(value) => updateSelectedCustomer("role", value)} value={selectedCustomer.role} />
+              <Field fieldId="mobile" label="Mobile" onChange={(value) => updateSelectedCustomer("mobile", value)} value={selectedCustomer.mobile} />
             </div>
           </section>
 
           <section>
             <h3>Address</h3>
             <div className="form-grid two">
-              <Field label="Billing address" rows={3} value={selectedCustomer.billingAddress} />
-              <Field label="Delivery address" rows={3} value={selectedCustomer.deliveryAddress} />
+              <Field fieldId="billingAddress" label="Billing address" onChange={(value) => updateSelectedCustomer("billingAddress", value)} rows={3} value={selectedCustomer.billingAddress} />
+              <Field fieldId="deliveryAddress" label="Delivery address" onChange={(value) => updateSelectedCustomer("deliveryAddress", value)} rows={3} value={selectedCustomer.deliveryAddress} />
             </div>
           </section>
 
           <section>
             <h3>Accounts and Pricing</h3>
             <div className="form-grid three">
-              <Field label="Payment terms" value={selectedCustomer.terms} />
-              <Field label="Credit limit" value={selectedCustomer.creditLimit} />
-              <Field label="Price level" value={selectedCustomer.priceLevel} />
+              <Field fieldId="terms" label="Payment terms" onChange={(value) => updateSelectedCustomer("terms", value)} value={selectedCustomer.terms} />
+              <Field fieldId="creditLimit" label="Credit limit" onChange={(value) => updateSelectedCustomer("creditLimit", value)} value={selectedCustomer.creditLimit} />
+              <Field fieldId="priceLevel" label="Price level" onChange={(value) => updateSelectedCustomer("priceLevel", value)} value={selectedCustomer.priceLevel} />
             </div>
           </section>
 
           <section>
             <h3>Notes</h3>
-            <Field label="Internal notes" rows={4} value={selectedCustomer.notes} />
+            <Field fieldId="notes" label="Internal notes" onChange={(value) => updateSelectedCustomer("notes", value)} rows={4} value={selectedCustomer.notes} />
           </section>
         </form>
       </article>
@@ -557,10 +665,12 @@ function PagePanel({
 function PanelHeading({
   actionLabel,
   eyebrow,
+  onAction,
   title,
 }: {
   actionLabel: string;
   eyebrow: string;
+  onAction?: () => void;
   title: string;
 }) {
   return (
@@ -569,7 +679,7 @@ function PanelHeading({
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
       </div>
-      <button className="primary-action" type="button">
+      <button className="primary-action" onClick={onAction} type="button">
         <Plus size={16} />
         <span>{actionLabel}</span>
       </button>
@@ -577,11 +687,25 @@ function PanelHeading({
   );
 }
 
-function Toolbar({ placeholder }: { placeholder: string }) {
+function Toolbar({
+  onChange,
+  placeholder,
+  value,
+}: {
+  onChange?: (value: string) => void;
+  placeholder: string;
+  value?: string;
+}) {
   return (
     <div className="toolbar">
       <Search size={18} />
-      <input aria-label={placeholder} placeholder={placeholder} type="search" />
+      <input
+        aria-label={placeholder}
+        onChange={(event) => onChange?.(event.target.value)}
+        placeholder={placeholder}
+        type="search"
+        value={value}
+      />
     </div>
   );
 }
@@ -590,14 +714,35 @@ function Badge({ label }: { label: string }) {
   return <span className="badge">{label}</span>;
 }
 
-function Field({ label, rows, value }: { label: string; rows?: number; value: string }) {
+function Field({
+  fieldId,
+  label,
+  onChange,
+  rows,
+  value,
+}: {
+  fieldId: string;
+  label: string;
+  onChange?: (value: string) => void;
+  rows?: number;
+  value: string;
+}) {
   return (
     <label className="field">
       <span>{label}</span>
       {rows ? (
-        <textarea defaultValue={value} key={`${label}-${value}`} rows={rows} />
+        <textarea
+          data-testid={`customer-${fieldId}`}
+          onChange={(event) => onChange?.(event.target.value)}
+          rows={rows}
+          value={value}
+        />
       ) : (
-        <input defaultValue={value} key={`${label}-${value}`} />
+        <input
+          data-testid={`customer-${fieldId}`}
+          onChange={(event) => onChange?.(event.target.value)}
+          value={value}
+        />
       )}
     </label>
   );
