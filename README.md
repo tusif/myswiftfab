@@ -1,6 +1,6 @@
 # MySwiftFab 
 
-Laser cutting estimation and production management app.
+Laser cutting estimation and production management app. 
 
 ## Phase 1
 
