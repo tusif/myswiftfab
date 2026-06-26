@@ -43,10 +43,98 @@ const metrics = [
 ];
 
 const contacts = [
-  { company: "Willis Engineering", kind: "Customer", person: "Anne Willis", phone: "08 9244 1180", status: "Active" },
-  { company: "Laser Metals WA", kind: "Supplier", person: "Darren Ng", phone: "08 9300 7782", status: "Preferred" },
-  { company: "Northline Transport", kind: "Transport", person: "Dispatch", phone: "13 13 31", status: "Active" },
-  { company: "Bayside Fabrication", kind: "Customer", person: "Matt Cooper", phone: "08 9455 3344", status: "Follow up" },
+  {
+    id: "willis",
+    company: "Willis Engineering",
+    kind: "Customer",
+    status: "Active",
+    accountCode: "WILLIS",
+    abn: "42 188 924 771",
+    phone: "08 9244 1180",
+    email: "quotes@willisengineering.com.au",
+    website: "willisengineering.com.au",
+    person: "Anne Willis",
+    role: "Estimator",
+    mobile: "0412 118 042",
+    billingAddress: "18 Forge Street, Malaga WA 6090",
+    deliveryAddress: "Gate 2, 18 Forge Street, Malaga WA 6090",
+    terms: "30 days",
+    creditLimit: "$25,000",
+    priceLevel: "Trade",
+    lastQuote: "400120",
+    openQuotes: 3,
+    totalQuoted: "$18,450",
+    notes: "Prefers itemised quote lines with material thickness visible. Send drawings back with revision number.",
+  },
+  {
+    id: "bayside",
+    company: "Bayside Fabrication",
+    kind: "Customer",
+    status: "Follow up",
+    accountCode: "BAYSIDE",
+    abn: "71 624 118 093",
+    phone: "08 9455 3344",
+    email: "matt@baysidefab.com.au",
+    website: "baysidefab.com.au",
+    person: "Matt Cooper",
+    role: "Owner",
+    mobile: "0408 455 334",
+    billingAddress: "Unit 4, 91 Kelvin Road, Maddington WA 6109",
+    deliveryAddress: "Unit 4, 91 Kelvin Road, Maddington WA 6109",
+    terms: "COD",
+    creditLimit: "$5,000",
+    priceLevel: "Standard",
+    lastQuote: "400121",
+    openQuotes: 1,
+    totalQuoted: "$2,240",
+    notes: "Usually supplies DXF files. Confirm pickup timing before converting quote to job.",
+  },
+  {
+    id: "henderson",
+    company: "Henderson Marine",
+    kind: "Customer",
+    status: "Active",
+    accountCode: "HENDER",
+    abn: "38 552 740 196",
+    phone: "08 9437 8100",
+    email: "projects@hendersonmarine.com.au",
+    website: "hendersonmarine.com.au",
+    person: "Priya Nair",
+    role: "Project Coordinator",
+    mobile: "0430 720 118",
+    billingAddress: "22 Sparks Road, Henderson WA 6166",
+    deliveryAddress: "Workshop 3, 22 Sparks Road, Henderson WA 6166",
+    terms: "14 days",
+    creditLimit: "$40,000",
+    priceLevel: "Project",
+    lastQuote: "400122",
+    openQuotes: 2,
+    totalQuoted: "$9,134",
+    notes: "Marine jobs require stainless material certificates and delivery docket copies.",
+  },
+  {
+    id: "laser-metals",
+    company: "Laser Metals WA",
+    kind: "Supplier",
+    status: "Preferred",
+    accountCode: "LMWA",
+    abn: "66 514 300 902",
+    phone: "08 9300 7782",
+    email: "sales@lasermetalswa.com.au",
+    website: "lasermetalswa.com.au",
+    person: "Darren Ng",
+    role: "Sales",
+    mobile: "0417 300 778",
+    billingAddress: "7 Capital Road, Wangara WA 6065",
+    deliveryAddress: "7 Capital Road, Wangara WA 6065",
+    terms: "30 days",
+    creditLimit: "$60,000",
+    priceLevel: "Supplier",
+    lastQuote: "PO-1186",
+    openQuotes: 0,
+    totalQuoted: "$1,560",
+    notes: "Primary source for mild steel sheet. Request eta confirmation before committing rush jobs.",
+  },
 ];
 
 const quotes = [
@@ -193,20 +281,118 @@ function DashboardPage() {
 }
 
 function ContactsPage() {
+  const customers = contacts.filter((contact) => contact.kind === "Customer");
+  const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id ?? contacts[0].id);
+  const selectedCustomer = contacts.find((contact) => contact.id === selectedCustomerId) ?? contacts[0];
+
   return (
-    <PagePanel eyebrow="CRM" title="Contact Directory" actionLabel="Add Contact">
-      <Toolbar placeholder="Search company, person, or phone" />
-      <DataTable
-        columns={["Company", "Kind", "Primary person", "Phone", "Status"]}
-        rows={contacts.map((contact) => [
-          contact.company,
-          contact.kind,
-          contact.person,
-          contact.phone,
-          <Badge key={contact.company} label={contact.status} />,
-        ])}
-      />
-    </PagePanel>
+    <section className="customer-workspace">
+      <article className="customer-list-panel">
+        <PanelHeading eyebrow="Customers" title="Customer List" actionLabel="Add Customer" />
+        <Toolbar placeholder="Search customer, contact, or phone" />
+        <div className="customer-list" aria-label="Customer list">
+          {contacts.map((contact) => (
+            <button
+              aria-current={selectedCustomer.id === contact.id ? "true" : undefined}
+              className="customer-list-item"
+              key={contact.id}
+              onClick={() => setSelectedCustomerId(contact.id)}
+              type="button"
+            >
+              <span className="customer-name">{contact.company}</span>
+              <span>{contact.person} - {contact.phone}</span>
+              <span className="customer-row-meta">
+                <Badge label={contact.kind} />
+                <Badge label={contact.status} />
+              </span>
+            </button>
+          ))}
+        </div>
+      </article>
+
+      <article className="customer-detail-panel">
+        <div className="customer-detail-header">
+          <div>
+            <p className="eyebrow">Customer Detail</p>
+            <h2>{selectedCustomer.company}</h2>
+            <p>{selectedCustomer.person} - {selectedCustomer.role}</p>
+          </div>
+          <div className="customer-actions">
+            <button className="secondary-action" type="button">New Quote</button>
+            <button className="primary-action" type="button">
+              <Plus size={16} />
+              <span>Save</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="customer-stat-grid">
+          <div>
+            <span>Status</span>
+            <strong>{selectedCustomer.status}</strong>
+          </div>
+          <div>
+            <span>Open Quotes</span>
+            <strong>{selectedCustomer.openQuotes}</strong>
+          </div>
+          <div>
+            <span>Last Ref</span>
+            <strong>{selectedCustomer.lastQuote}</strong>
+          </div>
+          <div>
+            <span>Total Quoted</span>
+            <strong>{selectedCustomer.totalQuoted}</strong>
+          </div>
+        </div>
+
+        <form className="customer-form">
+          <section>
+            <h3>Company</h3>
+            <div className="form-grid two">
+              <Field label="Company name" value={selectedCustomer.company} />
+              <Field label="Account code" value={selectedCustomer.accountCode} />
+              <Field label="ABN" value={selectedCustomer.abn} />
+              <Field label="Customer type" value={selectedCustomer.kind} />
+              <Field label="Phone" value={selectedCustomer.phone} />
+              <Field label="Email" value={selectedCustomer.email} />
+              <Field label="Website" value={selectedCustomer.website} />
+              <Field label="Status" value={selectedCustomer.status} />
+            </div>
+          </section>
+
+          <section>
+            <h3>Primary Contact</h3>
+            <div className="form-grid three">
+              <Field label="Name" value={selectedCustomer.person} />
+              <Field label="Role" value={selectedCustomer.role} />
+              <Field label="Mobile" value={selectedCustomer.mobile} />
+            </div>
+          </section>
+
+          <section>
+            <h3>Address</h3>
+            <div className="form-grid two">
+              <Field label="Billing address" rows={3} value={selectedCustomer.billingAddress} />
+              <Field label="Delivery address" rows={3} value={selectedCustomer.deliveryAddress} />
+            </div>
+          </section>
+
+          <section>
+            <h3>Accounts and Pricing</h3>
+            <div className="form-grid three">
+              <Field label="Payment terms" value={selectedCustomer.terms} />
+              <Field label="Credit limit" value={selectedCustomer.creditLimit} />
+              <Field label="Price level" value={selectedCustomer.priceLevel} />
+            </div>
+          </section>
+
+          <section>
+            <h3>Notes</h3>
+            <Field label="Internal notes" rows={4} value={selectedCustomer.notes} />
+          </section>
+        </form>
+      </article>
+    </section>
   );
 }
 
@@ -402,6 +588,19 @@ function Toolbar({ placeholder }: { placeholder: string }) {
 
 function Badge({ label }: { label: string }) {
   return <span className="badge">{label}</span>;
+}
+
+function Field({ label, rows, value }: { label: string; rows?: number; value: string }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      {rows ? (
+        <textarea defaultValue={value} key={`${label}-${value}`} rows={rows} />
+      ) : (
+        <input defaultValue={value} key={`${label}-${value}`} />
+      )}
+    </label>
+  );
 }
 
 function DataTable({
