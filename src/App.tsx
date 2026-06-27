@@ -2267,8 +2267,25 @@ function QuoteWorkbench({
                           <td>{salesEach.toFixed(2)}</td>
                           <td>{costTotal.toFixed(2)}</td>
                           <td>{amountTotal.toFixed(2)}</td>
-                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)} placeholder="NAME" value={o.supplier} /></td>
-                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)} placeholder="STAFF" value={o.staff} /></td>
+                          <td>{(() => {
+                            const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
+                            return (
+                              <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
+                                <option value="">— Supplier —</option>
+                                {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
+                              </select>
+                            );
+                          })()}</td>
+                          <td>{(() => {
+                            const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
+                            const staffList = supplierContact?.staff ?? [];
+                            return (
+                              <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
+                                <option value="">— Staff —</option>
+                                {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                              </select>
+                            );
+                          })()}</td>
                           <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
                           <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
                         </tr>
