@@ -535,7 +535,7 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
+      <header className="topnav">
         <div className="brand-mark">MSF</div>
         <nav aria-label="Main navigation">
           {modules.map((module) => {
@@ -549,20 +549,19 @@ export function App() {
                 title={module.title}
                 type="button"
               >
-                <Icon size={20} />
+                <Icon size={18} />
                 <span>{module.title}</span>
               </button>
             );
           })}
         </nav>
-      </aside>
+      </header>
 
       <section className="workspace">
         <header className="topbar">
           <div>
-            {activePage !== "materials" && <p className="eyebrow">MySwiftFab</p>}
-            <h1>{activePage === "materials" ? "Materials and Cutting Rates" : currentModule.title}</h1>
-            {activePage !== "materials" && <p className="page-description">{currentModule.description}</p>}
+            <h1>{currentModule.title}</h1>
+            <p className="page-description">{currentModule.description}</p>
           </div>
           <div className="topbar-actions">
           </div>
