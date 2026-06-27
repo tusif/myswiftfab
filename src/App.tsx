@@ -565,9 +565,6 @@ export function App() {
             {activePage !== "materials" && <p className="page-description">{currentModule.description}</p>}
           </div>
           <div className="topbar-actions">
-            <div className={hasSupabaseConfig ? "status-dot online" : "status-dot"}>
-              {hasSupabaseConfig ? "Supabase connected" : "Add Supabase env"}
-            </div>
           </div>
         </header>
 
