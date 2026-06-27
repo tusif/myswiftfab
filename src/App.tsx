@@ -124,6 +124,18 @@ type QuoteLineDraft = {
   pierce: string;
 };
 
+type MaterialRateDraft = {
+  type: string;
+  material: string;
+  thickness: string;
+  feed: string;
+  density: string;
+  cutRate: string;
+  costPerM2: string;
+  piercingRate: string;
+  piercingTime: string;
+};
+
 const modules: Module[] = [
   { id: "dashboard", title: "Dashboard", description: "Daily estimating and production view", icon: Gauge },
   { id: "contacts", title: "Contacts", description: "Clients, suppliers, transport, and people", icon: Users },
@@ -371,8 +383,45 @@ function formatMaterialValue(value: number | null, suffix = "") {
   return `${value}${suffix}`;
 }
 
+function parseMaterialNumber(value: string) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  const numberValue = Number(trimmedValue);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
 function getMaterialRateLabel(rate: MaterialRate) {
   return `${rate.material} - ${formatMaterialValue(rate.thickness, " mm")} - ${rate.type}`;
+}
+
+function createMaterialRateDraft(rate?: MaterialRate): MaterialRateDraft {
+  return {
+    type: rate?.type ?? "",
+    material: rate?.material ?? "",
+    thickness: formatMaterialValue(rate?.thickness ?? null),
+    feed: formatMaterialValue(rate?.feed ?? null),
+    density: formatMaterialValue(rate?.density ?? null),
+    cutRate: formatMaterialValue(rate?.cutRate ?? null),
+    costPerM2: formatMaterialValue(rate?.costPerM2 ?? null),
+    piercingRate: formatMaterialValue(rate?.piercingRate ?? null),
+    piercingTime: formatMaterialValue(rate?.piercingTime ?? null),
+  };
+}
+
+function createMaterialRateFromDraft(draft: MaterialRateDraft, existingRate?: MaterialRate): MaterialRate {
+  return {
+    id: existingRate?.id ?? `mat-custom-${Date.now()}`,
+    type: draft.type.trim(),
+    material: draft.material.trim(),
+    thickness: parseMaterialNumber(draft.thickness),
+    feed: parseMaterialNumber(draft.feed),
+    density: parseMaterialNumber(draft.density),
+    cutRate: parseMaterialNumber(draft.cutRate),
+    costPerM2: parseMaterialNumber(draft.costPerM2),
+    piercingRate: parseMaterialNumber(draft.piercingRate),
+    piercingTime: parseMaterialNumber(draft.piercingTime),
+  };
 }
 
 function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, contact: string): QuoteRecord {
@@ -1165,69 +1214,240 @@ function JobsPage() {
 }
 
 function MaterialsPage() {
+  const [materialRecords, setMaterialRecords] = useState<MaterialRate[]>(materialRates);
   const [materialSearchQuery, setMaterialSearchQuery] = useState("");
-  const [selectedMaterialName, setSelectedMaterialName] = useState("All");
-  const [selectedMaterialType, setSelectedMaterialType] = useState("All");
+  const [selectedMaterialGroupKey, setSelectedMaterialGroupKey] = useState("ALUMINIUM::ALI 5005");
+  const [selectedMaterialRateId, setSelectedMaterialRateId] = useState<string | null>(null);
+  const [materialEditorMode, setMaterialEditorMode] = useState<"add" | "edit" | null>(null);
+  const [materialDraft, setMaterialDraft] = useState<MaterialRateDraft>(createMaterialRateDraft);
   const normalizedMaterialSearch = materialSearchQuery.trim().toLowerCase();
-  const materialNames = Array.from(new Set(materialRates.map((rate) => rate.material))).sort();
-  const materialTypes = Array.from(new Set(materialRates.map((rate) => rate.type))).sort();
-  const filteredMaterialRates = materialRates.filter((rate) => {
-    const matchesMaterial = selectedMaterialName === "All" || rate.material === selectedMaterialName;
-    const matchesType = selectedMaterialType === "All" || rate.type === selectedMaterialType;
-    const matchesSearch = [
-      rate.type,
-      rate.material,
-      rate.thickness,
-      rate.feed,
-      rate.cutRate,
-      rate.costPerM2,
-      rate.piercingRate,
+  const materialGroups = Array.from(
+    materialRecords
+      .reduce((groupMap, rate) => {
+        const key = `${rate.type}::${rate.material}`;
+        const existingGroup = groupMap.get(key);
+        if (existingGroup) {
+          existingGroup.lines.push(rate);
+        } else {
+          groupMap.set(key, { key, material: rate.material, lines: [rate], type: rate.type });
+        }
+
+        return groupMap;
+      }, new Map<string, { key: string; material: string; lines: MaterialRate[]; type: string }>())
+      .values(),
+  )
+    .map((group) => ({
+      ...group,
+      lines: [...group.lines].sort((first, second) => (first.thickness ?? 9999) - (second.thickness ?? 9999)),
+    }))
+    .sort((first, second) => first.type.localeCompare(second.type) || first.material.localeCompare(second.material));
+  const filteredMaterialGroups = materialGroups.filter((group) =>
+    [
+      group.type,
+      group.material,
+      group.lines.length,
+      ...group.lines.flatMap((line) => [line.thickness, line.feed, line.cutRate, line.costPerM2, line.piercingRate]),
     ]
       .join(" ")
       .toLowerCase()
-      .includes(normalizedMaterialSearch);
+      .includes(normalizedMaterialSearch),
+  );
+  const selectedMaterialGroup =
+    filteredMaterialGroups.find((group) => group.key === selectedMaterialGroupKey) ??
+    filteredMaterialGroups[0] ??
+    materialGroups[0];
+  const selectedMaterialRate = materialRecords.find((rate) => rate.id === selectedMaterialRateId) ?? null;
+  const canSaveMaterial = Boolean(materialDraft.type.trim() && materialDraft.material.trim());
 
-    return matchesMaterial && matchesType && matchesSearch;
-  });
+  const selectMaterialGroup = (groupKey: string) => {
+    setSelectedMaterialGroupKey(groupKey);
+    setSelectedMaterialRateId(null);
+  };
+
+  const openAddMaterial = () => {
+    setMaterialDraft(createMaterialRateDraft());
+    setMaterialEditorMode("add");
+  };
+
+  const openEditMaterial = () => {
+    if (!selectedMaterialRate) return;
+
+    setMaterialDraft(createMaterialRateDraft(selectedMaterialRate));
+    setMaterialEditorMode("edit");
+  };
+
+  const closeMaterialEditor = () => {
+    setMaterialEditorMode(null);
+    setMaterialDraft(createMaterialRateDraft());
+  };
+
+  const updateMaterialDraft = (field: keyof MaterialRateDraft, value: string) => {
+    setMaterialDraft((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const saveMaterial = () => {
+    if (!canSaveMaterial) return;
+
+    if (materialEditorMode === "edit" && selectedMaterialRate) {
+      const updatedRate = createMaterialRateFromDraft(materialDraft, selectedMaterialRate);
+      setMaterialRecords((current) => current.map((rate) => (rate.id === updatedRate.id ? updatedRate : rate)));
+      setSelectedMaterialGroupKey(`${updatedRate.type}::${updatedRate.material}`);
+      setSelectedMaterialRateId(updatedRate.id);
+      closeMaterialEditor();
+      return;
+    }
+
+    const newRate = createMaterialRateFromDraft(materialDraft);
+    setMaterialRecords((current) => [...current, newRate]);
+    setSelectedMaterialGroupKey(`${newRate.type}::${newRate.material}`);
+    setSelectedMaterialRateId(newRate.id);
+    closeMaterialEditor();
+  };
 
   return (
-    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="Add Material">
-      <div className="material-filter-bar">
-        <label>
-          <span>Material</span>
-          <select onChange={(event) => setSelectedMaterialName(event.target.value)} value={selectedMaterialName}>
-            <option value="All">All materials</option>
-            {materialNames.map((materialName) => (
-              <option key={materialName} value={materialName}>{materialName}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Type</span>
-          <select onChange={(event) => setSelectedMaterialType(event.target.value)} value={selectedMaterialType}>
-            <option value="All">All types</option>
-            {materialTypes.map((materialType) => (
-              <option key={materialType} value={materialType}>{materialType}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="Add Material" onAction={openAddMaterial}>
       <Toolbar onChange={setMaterialSearchQuery} placeholder="Search material, type, thickness, or rate" value={materialSearchQuery} />
-      <DataTable
-        columns={["Type", "Materials", "Thickness", "Feed", "Density", "Cut Rate", "Cost per M2", "Piercing Rate", "Piercing Time"]}
-        emptyMessage="No material rates found."
-        rows={filteredMaterialRates.map((rate) => [
-          rate.type,
-          rate.material,
-          formatMaterialValue(rate.thickness),
-          formatMaterialValue(rate.feed),
-          formatMaterialValue(rate.density),
-          rate.cutRate === null ? "" : currency.format(rate.cutRate),
-          rate.costPerM2 === null ? "" : currency.format(rate.costPerM2),
-          rate.piercingRate === null ? "" : currency.format(rate.piercingRate),
-          formatMaterialValue(rate.piercingTime),
-        ])}
-      />
+      <section className="material-workbench" aria-label="Material rate editor">
+        <div className="material-master-table table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Materials</th>
+                <th>Click to View</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMaterialGroups.map((group) => (
+                <tr
+                  aria-current={selectedMaterialGroup?.key === group.key ? "true" : undefined}
+                  key={group.key}
+                  onClick={() => selectMaterialGroup(group.key)}
+                >
+                  <td>{group.type}</td>
+                  <td>{group.material}</td>
+                  <td><span className="material-count-pill">{group.lines.length}</span></td>
+                </tr>
+              ))}
+              {filteredMaterialGroups.length === 0 && (
+                <tr>
+                  <td className="empty-table-cell" colSpan={3}>No materials found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="material-detail-panel">
+          <div className="material-detail-actions">
+            <div>
+              <span>Selected material</span>
+              <strong>{selectedMaterialGroup ? `${selectedMaterialGroup.material} (${selectedMaterialGroup.type})` : "None"}</strong>
+            </div>
+            <button className="secondary-action" disabled={!selectedMaterialRate} onClick={openEditMaterial} type="button">
+              Edit
+            </button>
+          </div>
+          <div className="material-detail-table table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thickness</th>
+                  <th>Feed</th>
+                  <th>Density</th>
+                  <th>Cut Rate</th>
+                  <th>Cost per M2</th>
+                  <th>Piercing Rate</th>
+                  <th>Piercing Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedMaterialGroup?.lines ?? []).map((rate) => (
+                  <tr
+                    aria-current={selectedMaterialRateId === rate.id ? "true" : undefined}
+                    key={rate.id}
+                    onClick={() => setSelectedMaterialRateId(rate.id)}
+                  >
+                    <td>{formatMaterialValue(rate.thickness)}</td>
+                    <td>{formatMaterialValue(rate.feed)}</td>
+                    <td>{formatMaterialValue(rate.density)}</td>
+                    <td>{rate.cutRate === null ? "" : currency.format(rate.cutRate)}</td>
+                    <td>{rate.costPerM2 === null ? "" : currency.format(rate.costPerM2)}</td>
+                    <td>{rate.piercingRate === null ? "" : currency.format(rate.piercingRate)}</td>
+                    <td>{formatMaterialValue(rate.piercingTime)}</td>
+                  </tr>
+                ))}
+                {!selectedMaterialGroup && (
+                  <tr>
+                    <td className="empty-table-cell" colSpan={7}>Select a material to view rates.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {materialEditorMode && (
+        <section className="material-editor" aria-label={materialEditorMode === "add" ? "Add material" : "Edit material"}>
+          <div className="quote-line-form-heading">
+            <div>
+              <p className="eyebrow">{materialEditorMode === "add" ? "Add Material" : "Edit Material"}</p>
+              <h3>{materialDraft.material || "Material Rate"}</h3>
+            </div>
+            <div className="quote-picker-actions">
+              <button className="secondary-action" onClick={closeMaterialEditor} type="button">
+                Cancel
+              </button>
+              <button className="primary-action" disabled={!canSaveMaterial} onClick={saveMaterial} type="button">
+                <Plus size={16} />
+                <span>Save</span>
+              </button>
+            </div>
+          </div>
+          <div className="material-editor-grid">
+            <label className="field">
+              <span>Type</span>
+              <input onChange={(event) => updateMaterialDraft("type", event.target.value)} value={materialDraft.type} />
+            </label>
+            <label className="field">
+              <span>Materials</span>
+              <input onChange={(event) => updateMaterialDraft("material", event.target.value)} value={materialDraft.material} />
+            </label>
+            <label className="field">
+              <span>Thickness</span>
+              <input onChange={(event) => updateMaterialDraft("thickness", event.target.value)} value={materialDraft.thickness} />
+            </label>
+            <label className="field">
+              <span>Feed</span>
+              <input onChange={(event) => updateMaterialDraft("feed", event.target.value)} value={materialDraft.feed} />
+            </label>
+            <label className="field">
+              <span>Density</span>
+              <input onChange={(event) => updateMaterialDraft("density", event.target.value)} value={materialDraft.density} />
+            </label>
+            <label className="field">
+              <span>Cut Rate</span>
+              <input onChange={(event) => updateMaterialDraft("cutRate", event.target.value)} value={materialDraft.cutRate} />
+            </label>
+            <label className="field">
+              <span>Cost per M2</span>
+              <input onChange={(event) => updateMaterialDraft("costPerM2", event.target.value)} value={materialDraft.costPerM2} />
+            </label>
+            <label className="field">
+              <span>Piercing Rate</span>
+              <input onChange={(event) => updateMaterialDraft("piercingRate", event.target.value)} value={materialDraft.piercingRate} />
+            </label>
+            <label className="field">
+              <span>Piercing Time</span>
+              <input onChange={(event) => updateMaterialDraft("piercingTime", event.target.value)} value={materialDraft.piercingTime} />
+            </label>
+          </div>
+        </section>
+      )}
     </PagePanel>
   );
 }
