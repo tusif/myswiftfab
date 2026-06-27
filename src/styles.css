@@ -40,6 +40,7 @@ button {
 .topnav {
   align-items: stretch;
   background: #153f4d;
+  border-bottom: 4px solid #f57c20;
   color: #fff;
   display: flex;
   gap: 0;
@@ -53,16 +54,18 @@ button {
 
 .brand-mark {
   align-items: center;
-  background: #f57c20;
+  background: transparent;
+  border-right: 1px solid rgb(255 255 255 / 10%);
+  color: rgb(255 255 255 / 80%);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 800;
   justify-content: center;
   letter-spacing: 1px;
-  min-width: 72px;
-  padding: 10px 8px;
+  min-width: 84px;
+  padding: 10px 12px;
   text-align: center;
 }
 
