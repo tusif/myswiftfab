@@ -561,15 +561,6 @@ export function App() {
       </header>
 
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <h1>{currentModule.title}</h1>
-            <p className="page-description">{currentModule.description}</p>
-          </div>
-          <div className="topbar-actions">
-          </div>
-        </header>
-
         {activePage === "dashboard" && <DashboardPage />}
         {activePage === "contacts" && <ContactsPage contactTypes={contactTypes} />}
         {activePage === "quotes" && <QuotesPage />}
