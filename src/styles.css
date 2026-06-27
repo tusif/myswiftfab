@@ -1463,6 +1463,34 @@ td {
   text-align: center;
 }
 
+.data-table.compact {
+  font-size: 11px;
+  min-width: 900px;
+}
+
+.data-table.compact th {
+  background: #153f4d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 7px 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.data-table.compact td {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.data-table.compact tbody tr:nth-child(even) {
+  background: #f7f9fb;
+}
+
+.data-table.compact tbody tr:hover {
+  background: #eef4f8;
+}
+
 .stacked-cell {
   display: grid;
   gap: 3px;

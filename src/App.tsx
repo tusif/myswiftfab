@@ -94,6 +94,9 @@ type QuoteRecord = {
   lines: number;
   total: number;
   margin: string;
+  date?: string;
+  material?: number;
+  delivery?: number;
 };
 
 type QuoteLine = {
@@ -482,10 +485,10 @@ function calculateQuoteTotal(lines: QuoteLine[]) {
 }
 
 const quotes: QuoteRecord[] = [
-  { quote: "400120", client: "Willis Engineering", contact: "Anne Willis", status: "Draft", lines: 8, total: 4814.35, margin: "34%" },
-  { quote: "400121", client: "Bayside Fabrication", contact: "Matt Cooper", status: "Sent", lines: 5, total: 2240.1, margin: "29%" },
-  { quote: "400122", client: "Henderson Marine", contact: "Priya Nair", status: "Approved", lines: 14, total: 9133.8, margin: "37%" },
-  { quote: "400123", client: "Perth Access", contact: "Site contact", status: "Review", lines: 3, total: 1184.5, margin: "25%" },
+  { quote: "400120", client: "Willis Engineering", contact: "Anne Willis", status: "Draft", lines: 8, total: 4814.35, margin: "34%", date: "1/3/2026", material: 1240.00, delivery: 0 },
+  { quote: "400121", client: "Bayside Fabrication", contact: "Matt Cooper", status: "Sent", lines: 5, total: 2240.10, margin: "29%", date: "1/3/2026", material: 680.50, delivery: 55.00 },
+  { quote: "400122", client: "Henderson Marine", contact: "Priya Nair", status: "Approved", lines: 14, total: 9133.80, margin: "37%", date: "4/1/2026", material: 3210.00, delivery: 0 },
+  { quote: "400123", client: "Perth Access", contact: "Site contact", status: "Review", lines: 3, total: 1184.50, margin: "25%", date: "2/2/2026", material: 457.29, delivery: 0 },
 ];
 
 const quoteLines: QuoteLine[] = [
@@ -1181,16 +1184,30 @@ function QuotesPage() {
         </section>
       )}
       <DataTable
-        columns={["Quote", "Client", "Status", "Lines", "Total", "Margin"]}
+        columns={["Quote", "Date", "Company", "Staff", "Lines", "Material", "Subtotal", "Delivery", "Total Del. Inc.", "GST", "Total GST Inc.", "Status"]}
+        compact
         onRowClick={(index) => openQuote(filteredQuoteRecords[index])}
-        rows={filteredQuoteRecords.map((quote) => [
-          quote.quote,
-          quote.client,
-          <Badge key={quote.quote} label={quote.status} />,
-          quote.lines,
-          currency.format(quote.total),
-          quote.margin,
-        ])}
+        rows={filteredQuoteRecords.map((quote) => {
+          const subtotal = quote.total / 1.1;
+          const gst = quote.total - subtotal;
+          const delivery = quote.delivery ?? 0;
+          const totalDelInc = subtotal + delivery;
+          const totalGstInc = totalDelInc * 1.1;
+          return [
+            quote.quote,
+            quote.date ?? "—",
+            quote.client,
+            quote.contact,
+            quote.lines,
+            currency.format(quote.material ?? 0),
+            currency.format(subtotal),
+            delivery ? currency.format(delivery) : "",
+            currency.format(totalDelInc),
+            currency.format(totalDelInc * 0.1),
+            currency.format(totalGstInc),
+            <Badge key={quote.quote} label={quote.status} />,
+          ];
+        })}
       />
     </PagePanel>
   );
@@ -2477,18 +2494,20 @@ function Field({
 
 function DataTable({
   columns,
+  compact = false,
   emptyMessage,
   onRowClick,
   rows,
 }: {
   columns: string[];
+  compact?: boolean;
   emptyMessage?: string;
   onRowClick?: (index: number) => void;
   rows: Array<Array<React.ReactNode>>;
 }) {
   return (
     <div className="table-wrap">
-      <table>
+      <table className={compact ? "data-table compact" : "data-table"}>
         <thead>
           <tr>
             {columns.map((column) => (
