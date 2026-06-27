@@ -1220,6 +1220,8 @@ function MaterialsPage() {
   const [selectedMaterialRateId, setSelectedMaterialRateId] = useState<string | null>(null);
   const [materialEditorMode, setMaterialEditorMode] = useState<"add" | "edit" | null>(null);
   const [materialDraft, setMaterialDraft] = useState<MaterialRateDraft>(createMaterialRateDraft);
+  const [materialTypeEditorMode, setMaterialTypeEditorMode] = useState<"add" | "edit" | null>(null);
+  const [materialTypeDraft, setMaterialTypeDraft] = useState("");
   const normalizedMaterialSearch = materialSearchQuery.trim().toLowerCase();
   const materialGroups = Array.from(
     materialRecords
@@ -1258,6 +1260,7 @@ function MaterialsPage() {
     materialGroups[0];
   const selectedMaterialRate = materialRecords.find((rate) => rate.id === selectedMaterialRateId) ?? null;
   const canSaveMaterial = Boolean(materialDraft.type.trim() && materialDraft.material.trim());
+  const canSaveMaterialType = Boolean(materialTypeDraft.trim());
 
   const selectMaterialGroup = (groupKey: string) => {
     setSelectedMaterialGroupKey(groupKey);
@@ -1265,7 +1268,7 @@ function MaterialsPage() {
   };
 
   const openAddMaterial = () => {
-    setMaterialDraft(createMaterialRateDraft());
+    setMaterialDraft(createMaterialRateDraft(selectedMaterialGroup?.lines[0]));
     setMaterialEditorMode("add");
   };
 
@@ -1307,9 +1310,59 @@ function MaterialsPage() {
     closeMaterialEditor();
   };
 
+  const openAddMaterialType = () => {
+    setMaterialTypeDraft("");
+    setMaterialTypeEditorMode("add");
+  };
+
+  const openEditMaterialType = () => {
+    if (!selectedMaterialGroup) return;
+
+    setMaterialTypeDraft(selectedMaterialGroup.type);
+    setMaterialTypeEditorMode("edit");
+  };
+
+  const closeMaterialTypeEditor = () => {
+    setMaterialTypeDraft("");
+    setMaterialTypeEditorMode(null);
+  };
+
+  const saveMaterialType = () => {
+    const nextType = materialTypeDraft.trim();
+    if (!nextType) return;
+
+    if (materialTypeEditorMode === "edit" && selectedMaterialGroup) {
+      setMaterialRecords((current) =>
+        current.map((rate) => (rate.type === selectedMaterialGroup.type ? { ...rate, type: nextType } : rate)),
+      );
+      setSelectedMaterialGroupKey(`${nextType}::${selectedMaterialGroup.material}`);
+      closeMaterialTypeEditor();
+      return;
+    }
+
+    setMaterialDraft({
+      ...createMaterialRateDraft(),
+      type: nextType,
+    });
+    setMaterialEditorMode("add");
+    closeMaterialTypeEditor();
+  };
+
   return (
-    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="Add Material" onAction={openAddMaterial}>
+    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="">
       <Toolbar onChange={setMaterialSearchQuery} placeholder="Search material, type, thickness, or rate" value={materialSearchQuery} />
+      <div className="material-action-bar">
+        <div>
+          <span>Material</span>
+          <button className="secondary-action" onClick={openAddMaterial} type="button">Add</button>
+          <button className="secondary-action" disabled={!selectedMaterialRate} onClick={openEditMaterial} type="button">Edit</button>
+        </div>
+        <div>
+          <span>Material Type</span>
+          <button className="secondary-action" onClick={openAddMaterialType} type="button">Add</button>
+          <button className="secondary-action" disabled={!selectedMaterialGroup} onClick={openEditMaterialType} type="button">Edit</button>
+        </div>
+      </div>
       <section className="material-workbench" aria-label="Material rate editor">
         <div className="material-master-table table-wrap">
           <table>
@@ -1317,7 +1370,7 @@ function MaterialsPage() {
               <tr>
                 <th>Type</th>
                 <th>Materials</th>
-                <th>Click to View</th>
+                <th>Count</th>
               </tr>
             </thead>
             <tbody>
@@ -1329,7 +1382,7 @@ function MaterialsPage() {
                 >
                   <td>{group.type}</td>
                   <td>{group.material}</td>
-                  <td><span className="material-count-pill">{group.lines.length}</span></td>
+                  <td>{group.lines.length}</td>
                 </tr>
               ))}
               {filteredMaterialGroups.length === 0 && (
@@ -1347,9 +1400,7 @@ function MaterialsPage() {
               <span>Selected material</span>
               <strong>{selectedMaterialGroup ? `${selectedMaterialGroup.material} (${selectedMaterialGroup.type})` : "None"}</strong>
             </div>
-            <button className="secondary-action" disabled={!selectedMaterialRate} onClick={openEditMaterial} type="button">
-              Edit
-            </button>
+            <span className="material-rate-selection">{selectedMaterialRate ? "Rate selected" : "Select a rate line to edit"}</span>
           </div>
           <div className="material-detail-table table-wrap">
             <table>
@@ -1444,6 +1495,31 @@ function MaterialsPage() {
             <label className="field">
               <span>Piercing Time</span>
               <input onChange={(event) => updateMaterialDraft("piercingTime", event.target.value)} value={materialDraft.piercingTime} />
+            </label>
+          </div>
+        </section>
+      )}
+      {materialTypeEditorMode && (
+        <section className="material-editor" aria-label={materialTypeEditorMode === "add" ? "Add material type" : "Edit material type"}>
+          <div className="quote-line-form-heading">
+            <div>
+              <p className="eyebrow">{materialTypeEditorMode === "add" ? "Add Material Type" : "Edit Material Type"}</p>
+              <h3>{materialTypeDraft || selectedMaterialGroup?.type || "Material Type"}</h3>
+            </div>
+            <div className="quote-picker-actions">
+              <button className="secondary-action" onClick={closeMaterialTypeEditor} type="button">
+                Cancel
+              </button>
+              <button className="primary-action" disabled={!canSaveMaterialType} onClick={saveMaterialType} type="button">
+                <Plus size={16} />
+                <span>Save</span>
+              </button>
+            </div>
+          </div>
+          <div className="material-type-editor-grid">
+            <label className="field">
+              <span>Material Type</span>
+              <input onChange={(event) => setMaterialTypeDraft(event.target.value)} value={materialTypeDraft} />
             </label>
           </div>
         </section>
@@ -2077,10 +2153,12 @@ function PanelHeading({
         <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
       </div>
-      <button className="primary-action" onClick={onAction} type="button">
-        <Plus size={16} />
-        <span>{actionLabel}</span>
-      </button>
+      {actionLabel && (
+        <button className="primary-action" onClick={onAction} type="button">
+          <Plus size={16} />
+          <span>{actionLabel}</span>
+        </button>
+      )}
     </div>
   );
 }
