@@ -1984,7 +1984,7 @@ function QuoteWorkbench({
   const othersAmountTotal = currentOthers.reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0);
 
   function addOtherRow() {
-    const row: OtherLineItem = { id: crypto.randomUUID(), category: "CATEGORY", description: "", qty: 1, cost: 0, markupPct: 20, supplier: "", staff: "", ref: "" };
+    const row: OtherLineItem = { id: crypto.randomUUID(), category: "BENDING", description: "", qty: 1, cost: 0, markupPct: 20, supplier: "", staff: "", ref: "" };
     setLineOthers((prev) => ({ ...prev, [selectedLineIndex]: [...(prev[selectedLineIndex] ?? []), row] }));
   }
   function updateOtherRow(id: string, field: keyof OtherLineItem, value: string | number) {
@@ -2230,7 +2230,9 @@ function QuoteWorkbench({
                         <tr key={o.id}>
                           <td></td>
                           <td className="qf-others-cat-cell">
-                            <input className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category} />
+                            <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
+                              {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
                             <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
                           </td>
                           <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
