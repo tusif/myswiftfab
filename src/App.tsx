@@ -2142,7 +2142,7 @@ function QuoteWorkbench({
         <div className="qf-calc-layout">
 
           {/* Left: calculator grid */}
-          <div className="qf-calc-left">
+          <div className="qf-calc-left" style={detailTab === "others" ? { gridColumn: "1 / -1" } : undefined}>
             <div className="qf-calc-tabs">
               <button aria-selected={detailTab === "detail"} className="qf-calc-tab" onClick={() => setDetailTab("detail")} type="button">Calculator</button>
               <button aria-selected={detailTab === "others"} className="qf-calc-tab" onClick={() => setDetailTab("others")} type="button">Others</button>
@@ -2258,8 +2258,8 @@ function QuoteWorkbench({
             )}
           </div>
 
-          {/* Right: Hole Type table */}
-          <div className="qf-calc-right">
+          {/* Right: Hole Type table — hidden when Others tab active */}
+          <div className="qf-calc-right" style={detailTab === "others" ? { display: "none" } : undefined}>
             <table className="qf-calc-table">
               <thead>
                 <tr>
