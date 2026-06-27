@@ -464,46 +464,7 @@ h3 {
 }
 
 .material-detail-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
-}
-
-.material-detail-actions {
-  align-items: center;
-  background: #4b1f60;
-  color: #fff;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  min-height: 50px;
-  padding: 7px 12px;
-}
-
-.material-detail-actions div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.material-detail-actions span {
-  color: rgb(255 255 255 / 72%);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.material-detail-actions strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.material-rate-selection {
-  color: rgb(255 255 255 / 78%);
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .material-workbench tr {
@@ -1314,11 +1275,6 @@ td {
 
   .material-workbench {
     padding: 8px;
-  }
-
-  .material-detail-actions {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .material-action-bar,

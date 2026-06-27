@@ -560,9 +560,9 @@ export function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">MySwiftFab</p>
-            <h1>{currentModule.title}</h1>
-            <p className="page-description">{currentModule.description}</p>
+            {activePage !== "materials" && <p className="eyebrow">MySwiftFab</p>}
+            <h1>{activePage === "materials" ? "Materials and Cutting Rates" : currentModule.title}</h1>
+            {activePage !== "materials" && <p className="page-description">{currentModule.description}</p>}
           </div>
           <div className="topbar-actions">
             <div className={hasSupabaseConfig ? "status-dot online" : "status-dot"}>
@@ -1349,18 +1349,18 @@ function MaterialsPage() {
   };
 
   return (
-    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="">
+    <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="" hideHeading>
       <Toolbar onChange={setMaterialSearchQuery} placeholder="Search material, type, thickness, or rate" value={materialSearchQuery} />
       <div className="material-action-bar">
-        <div>
-          <span>Material</span>
-          <button className="secondary-action" onClick={openAddMaterial} type="button">Add</button>
-          <button className="secondary-action" disabled={!selectedMaterialRate} onClick={openEditMaterial} type="button">Edit</button>
-        </div>
         <div>
           <span>Material Type</span>
           <button className="secondary-action" onClick={openAddMaterialType} type="button">Add</button>
           <button className="secondary-action" disabled={!selectedMaterialGroup} onClick={openEditMaterialType} type="button">Edit</button>
+        </div>
+        <div>
+          <span>Material</span>
+          <button className="secondary-action" onClick={openAddMaterial} type="button">Add</button>
+          <button className="secondary-action" disabled={!selectedMaterialRate} onClick={openEditMaterial} type="button">Edit</button>
         </div>
       </div>
       <section className="material-workbench" aria-label="Material rate editor">
@@ -1395,13 +1395,6 @@ function MaterialsPage() {
         </div>
 
         <div className="material-detail-panel">
-          <div className="material-detail-actions">
-            <div>
-              <span>Selected material</span>
-              <strong>{selectedMaterialGroup ? `${selectedMaterialGroup.material} (${selectedMaterialGroup.type})` : "None"}</strong>
-            </div>
-            <span className="material-rate-selection">{selectedMaterialRate ? "Rate selected" : "Select a rate line to edit"}</span>
-          </div>
           <div className="material-detail-table table-wrap">
             <table>
               <thead>
@@ -2119,18 +2112,20 @@ function PagePanel({
   actionLabel,
   children,
   eyebrow,
+  hideHeading = false,
   onAction,
   title,
 }: {
   actionLabel: string;
   children: React.ReactNode;
   eyebrow: string;
+  hideHeading?: boolean;
   onAction?: () => void;
   title: string;
 }) {
   return (
     <article className="page-panel">
-      <PanelHeading actionLabel={actionLabel} eyebrow={eyebrow} onAction={onAction} title={title} />
+      {!hideHeading && <PanelHeading actionLabel={actionLabel} eyebrow={eyebrow} onAction={onAction} title={title} />}
       {children}
     </article>
   );
