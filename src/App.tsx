@@ -2043,63 +2043,66 @@ function QuoteWorkbench({
   };
 
   return (
-    <article className={compact ? "quote-panel compact" : "quote-panel"}>
+    <article className="quote-panel">
+      {/* Back bar */}
       {onBack && (
         <div className="quote-back-bar">
           <button className="secondary-action" onClick={onBack} type="button">← Quote List</button>
           <span className="quote-back-ref">{quote.quote} — {quote.client}</span>
         </div>
       )}
-      <div className="quote-form-header">
-        <div className="quote-party-grid">
-          <label>
-            <span>Client</span>
-            <select aria-label="Client" onChange={(event) => selectClientForQuote(event.target.value)} value={selectedClientName}>
-              {contacts
-                .filter((contact) => splitContactTypes(contact.kind).includes("Client"))
-                .map((contact) => (
-                  <option key={contact.id} value={contact.company}>{contact.company}</option>
-                ))}
-            </select>
-          </label>
-          <label>
-            <span>Staff</span>
-            <select aria-label="Staff" onChange={(event) => setSelectedStaffName(event.target.value)} value={selectedStaff?.name ?? ""}>
-              {selectedClient.staff.map((staffMember) => (
-                <option key={staffMember.id} value={staffMember.name}>{staffMember.name}</option>
+
+      {/* ── Header strip ── */}
+      <div className="qf-header">
+        <div className="qf-header-left">
+          <div className="qf-col-head">CLIENT</div>
+          <div className="qf-col-head">STAFF</div>
+          <div className="qf-col-head">ADDRESS</div>
+          <div className="qf-col-head">EMAIL</div>
+          <div className="qf-col-head">PHONE</div>
+
+          <div className="qf-cell">
+            <select aria-label="Client" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
+              {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
+                <option key={c.id} value={c.company}>{c.company}</option>
               ))}
             </select>
-          </label>
-          <div>
-            <span>Quote</span>
-            <strong>{quote.quote}</strong>
           </div>
-          <div>
-            <span>Status</span>
-            <strong>{quote.status}</strong>
+          <div className="qf-cell">
+            <select aria-label="Staff" onChange={(e) => setSelectedStaffName(e.target.value)} value={selectedStaff?.name ?? ""}>
+              {selectedClient.staff.map((s) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
           </div>
+          <div className="qf-cell">{selectedClient.billingAddress || "—"}</div>
+          <div className="qf-cell">{selectedStaff?.email || selectedClient.email || "—"}</div>
+          <div className="qf-cell">{selectedStaff?.direct || selectedStaff?.mobile || selectedClient.phone || "—"}</div>
         </div>
-        <div className="quote-client-detail">
-          <div>
-            <span>Address</span>
-            <strong>{selectedClient.billingAddress}</strong>
+
+        <div className="qf-header-right">
+          <div className="qf-status-bar">
+            <span className="qf-label">STATUS</span>
+            <span className="qf-status-badge">{quote.status.toUpperCase()}</span>
+            <span className="qf-label">QUOTE</span>
+            <span className="qf-field-val">{quote.quote}</span>
+            <span className="qf-label">DATE</span>
+            <span className="qf-field-val">{quote.date ?? "—"}</span>
           </div>
-          <div>
-            <span>Email</span>
-            <strong>{selectedStaff?.email || selectedClient.email}</strong>
-          </div>
-          <div>
-            <span>Phone</span>
-            <strong>{selectedStaff?.direct || selectedStaff?.mobile || selectedClient.phone}</strong>
+          <div className="qf-sales-bar">
+            <span className="qf-label">SALES STAFF</span>
+            <span className="qf-field-val">{quote.contact}</span>
           </div>
         </div>
       </div>
 
-      <div className="quote-calculator-panel">
-        <div className="quote-detail-tabs" role="tablist" aria-label="Quote line sections">
+      {/* ── Calculator panel ── */}
+      <div className="qf-calc-panel">
+        <div className="qf-calc-tabs">
           {(["detail", "others", "holes", "advanced"] as const).map((tab) => (
             <button
               aria-selected={detailTab === tab}
+              className="qf-calc-tab"
               key={tab}
               onClick={() => setDetailTab(tab)}
               type="button"
@@ -2109,188 +2112,175 @@ function QuoteWorkbench({
           ))}
         </div>
 
-        <div className="quote-selected-line">
-          <div className="quote-selected-main">
-            <span>Selected Line</span>
-            <strong>{selectedLine?.part ?? "No line selected"}</strong>
-            <small>{selectedLine ? `${selectedLine.thickness} ${selectedLine.material}` : "Add or select a quote line."}</small>
-          </div>
-          <div className="quote-line-metrics">
-            <div><span>Material</span><strong>{selectedLine?.material ?? "-"}</strong></div>
-            <div><span>Qty</span><strong>{selectedLine?.qty ?? "-"}</strong></div>
-            <div><span>Cut</span><strong>{selectedLine?.cut.toFixed(2) ?? "-"}</strong></div>
-            <div><span>Pierce</span><strong>{selectedLine?.pierce.toFixed(2) ?? "-"}</strong></div>
-            <div><span>Total</span><strong>{selectedLine ? currency.format(selectedLine.total) : "-"}</strong></div>
-          </div>
-        </div>
-
-        {detailTab === "detail" && (
-          <div className="quote-line-detail-grid">
-            <div><span>Size / Description</span><strong>{selectedLine?.part ?? "-"}</strong></div>
-            <div><span>Material Type</span><strong>{selectedLine?.materialType ?? "-"}</strong></div>
-            <div><span>Thickness</span><strong>{selectedLine?.thickness ?? "-"}</strong></div>
-            <div><span>Feed</span><strong>{formatMaterialValue(selectedLine?.feed ?? null)}</strong></div>
-          </div>
-        )}
-
-        {detailTab === "holes" && (
-          <div className="quote-line-detail-grid">
-            <div><span>Hole Type</span><strong>Laser cut holes</strong></div>
-            <div><span>Nos</span><strong>4</strong></div>
-            <div><span>Dia</span><strong>50</strong></div>
-            <div><span>Containing Holes</span><strong>{selectedLine ? "Yes" : "-"}</strong></div>
-          </div>
-        )}
-
-        {detailTab === "others" && (
-          <div className="quote-others-table-panel">
-            <table>
+        <div className="qf-calc-body">
+          {detailTab === "detail" && (
+            <table className="qf-calc-table">
               <thead>
                 <tr>
-                  <th>Category</th>
-                  <th>Qty</th>
-                  <th>Cost</th>
-                  <th>%age</th>
-                  <th>Sales</th>
-                  <th>Cost</th>
-                  <th>Amount</th>
-                  <th>Supplier</th>
-                  <th>Staff</th>
-                  <th>Ref.</th>
+                  <th>Material</th><th>Supplied</th><th>Offset</th><th>Side 1</th><th>Side 2</th><th>Incl.</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>
-                    <input aria-label="Other category" onChange={(event) => setOtherCategory(event.target.value)} value={otherCategory} />
-                    <input aria-label="Other description" className="muted-input" onChange={(event) => setOtherDescription(event.target.value)} placeholder="Description" value={otherDescription} />
-                  </td>
-                  <td><input aria-label="Other quantity" onChange={(event) => setOtherQty(event.target.value)} type="number" value={otherQty} /></td>
-                  <td><input aria-label="Other cost each" onChange={(event) => setSubcontractCost(event.target.value)} type="number" value={subcontractCost} /></td>
-                  <td><input aria-label="Other markup percent" onChange={(event) => setMarkupPercent(event.target.value)} type="number" value={markupPercent} /></td>
+                  <td className="qf-row-label">Thick</td>
+                  <td>{selectedLine?.thickness.replace(" mm","") ?? "—"}</td>
+                  <td>NO</td><td>10</td>
+                  <td>{selectedLine ? String(parseInt(selectedLine.thickness) * 55 + 2) : "—"}</td>
+                  <td>{selectedLine ? String(parseInt(selectedLine.thickness) * 68 + 4) : "—"}</td>
+                  <td><input type="checkbox" readOnly /></td>
+                </tr>
+                <tr>
+                  <td className="qf-row-label">Feed Rate</td>
+                  <td>{formatMaterialValue(selectedLine?.feed ?? null)}</td>
+                  <td colSpan={2}>Material:</td>
+                  <td>{selectedLine ? String(Math.round((selectedLine.cut * 12) + 580)) : "—"}</td>
+                  <td>{selectedLine ? String(Math.round((selectedLine.cut * 15) + 690)) : "—"}</td>
+                  <td>{selectedLine ? String(Math.round((selectedLine.cut * 28) + 2800)) : "—"}</td>
+                </tr>
+                <tr>
+                  <td className="qf-row-label">Cut Rate</td>
+                  <td>{selectedLine?.cut.toFixed(2) ?? "—"}</td>
+                  <td colSpan={2}>Laser Holes</td>
+                  <td>HOLES</td><td>DIA</td>
+                  <td>{selectedLine?.qty ?? "—"}</td>
+                </tr>
+                <tr>
+                  <td className="qf-row-label">$ m2 Rate</td>
+                  <td>{formatMaterialValue(selectedLine?.costPerM2 ?? null)}</td>
+                  <td colSpan={2}>Slots</td>
+                  <td>QTY</td><td>S1</td><td>S2</td>
+                </tr>
+                <tr>
+                  <td className="qf-row-label">Piercing</td>
+                  <td>{selectedLine?.pierce.toFixed(2) ?? "—"}</td>
+                  <td colSpan={2}>Len</td>
+                  <td colSpan={3}>LEN</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+
+          {detailTab === "holes" && (
+            <table className="qf-calc-table">
+              <thead>
+                <tr>
+                  <th>Hole Type</th><th>O/D-ID</th><th>Nos</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Total</th><th>Weight</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>LASER CUT HOLES</td><td></td><td>4</td><td>50</td><td></td><td></td><td></td><td>628</td><td></td>
+                </tr>
+                <tr><td colSpan={9} className="qf-empty-row"></td></tr>
+              </tbody>
+            </table>
+          )}
+
+          {detailTab === "others" && (
+            <table className="qf-calc-table">
+              <thead>
+                <tr>
+                  <th>Category</th><th>Qty</th><th>Cost</th><th>%age</th><th>Sales</th><th>Cost Total</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input aria-label="Other category" onChange={(e) => setOtherCategory(e.target.value)} value={otherCategory} /></td>
+                  <td><input aria-label="Qty" onChange={(e) => setOtherQty(e.target.value)} type="number" value={otherQty} /></td>
+                  <td><input aria-label="Cost" onChange={(e) => setSubcontractCost(e.target.value)} type="number" value={subcontractCost} /></td>
+                  <td><input aria-label="Markup %" onChange={(e) => setMarkupPercent(e.target.value)} type="number" value={markupPercent} /></td>
                   <td>{otherSalesEach.toFixed(2)}</td>
                   <td>{otherCostTotal.toFixed(2)}</td>
                   <td>{subcontractTotal.toFixed(2)}</td>
-                  <td><input aria-label="Other supplier" onChange={(event) => setOtherSupplier(event.target.value)} placeholder="Name" value={otherSupplier} /></td>
-                  <td><input aria-label="Other staff" onChange={(event) => setOtherStaff(event.target.value)} placeholder="Staff" value={otherStaff} /></td>
-                  <td><input aria-label="Other reference" onChange={(event) => setOtherReference(event.target.value)} placeholder="Reference" value={otherReference} /></td>
-                </tr>
-                <tr className="quote-others-placeholder">
-                  <td>
-                    <span>Category</span>
-                    <span>Description</span>
-                  </td>
-                  <td>Qty</td>
-                  <td>Cost</td>
-                  <td>%age</td>
-                  <td>Sales</td>
-                  <td>Cost</td>
-                  <td>Sales</td>
-                  <td>Name</td>
-                  <td>Staff</td>
-                  <td>Reference</td>
+                  <td><input aria-label="Supplier" onChange={(e) => setOtherSupplier(e.target.value)} placeholder="Name" value={otherSupplier} /></td>
+                  <td><input aria-label="Staff" onChange={(e) => setOtherStaff(e.target.value)} placeholder="Staff" value={otherStaff} /></td>
+                  <td><input aria-label="Ref" onChange={(e) => setOtherReference(e.target.value)} placeholder="Ref" value={otherReference} /></td>
                 </tr>
               </tbody>
               <tfoot>
-                <tr>
-                  <td colSpan={5}>Total:</td>
-                  <td>{currency.format(otherCostTotal)}</td>
-                  <td>{currency.format(subcontractTotal)}</td>
-                  <td colSpan={3}></td>
-                </tr>
+                <tr><td colSpan={5}>Total:</td><td>{currency.format(otherCostTotal)}</td><td>{currency.format(subcontractTotal)}</td><td colSpan={3}></td></tr>
               </tfoot>
             </table>
-          </div>
-        )}
+          )}
 
-        {detailTab === "advanced" && (
-          <div className="quote-line-detail-grid">
-            <div><span>Supplied</span><strong>No</strong></div>
-            <div><span>Offset</span><strong>10</strong></div>
-            <div><span>Minimum Cutting Charge</span><strong>{currency.format(0)}</strong></div>
-            <div><span>Status</span><strong>Complete</strong></div>
+          {detailTab === "advanced" && (
+            <table className="qf-calc-table">
+              <thead>
+                <tr><th>Supplied</th><th>Offset</th><th>Min. Cutting Charge</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>NO</td><td>10</td><td>{currency.format(0)}</td><td>Complete</td></tr>
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Summary row */}
+        <div className="qf-calc-summary">
+          <div className="qf-summary-cells">
+            <div><span>Material</span><strong>{selectedLine ? currency.format(selectedLine.costPerM2 ?? 0) : "—"}</strong></div>
+            <div><span>Cutting</span><strong>{selectedLine ? currency.format(selectedLine.cut) : "—"}</strong></div>
+            <div><span>Piercing</span><strong>{selectedLine ? selectedLine.pierce.toFixed(2) : "—"}</strong></div>
+            <div><span>Other</span><strong>0</strong></div>
+            <div><span>Rate</span><strong>{selectedLine ? currency.format(selectedLine.total / Math.max(selectedLine.qty, 1)) : "—"}</strong></div>
+            <div><span>Weight</span><strong>0</strong></div>
+            <div><span>Time (min)</span><strong>{selectedLine ? (selectedLine.total / 30).toFixed(2) : "—"}</strong></div>
           </div>
-        )}
+          <div className="qf-summary-desc">
+            <input
+              placeholder="PLATE TO EMAIL"
+              readOnly
+              value={selectedLine?.part ?? ""}
+            />
+            <span className="qf-label">Description</span>
+          </div>
+          <div className="qf-summary-total">
+            <span>Total:</span>
+            <strong>{selectedLine ? currency.format(selectedLine.total) : "—"}</strong>
+          </div>
+        </div>
       </div>
 
+      {/* ── Add line form ── */}
       {isLineFormOpen && (
         <section className="quote-line-form" aria-label="Add quote line">
           <div className="quote-line-form-heading">
-            <div>
-              <p className="eyebrow">Line Item</p>
-              <h3>Add Part</h3>
-            </div>
+            <div><p className="eyebrow">Line Item</p><h3>Add Part</h3></div>
             <div className="quote-picker-actions">
-              <button className="secondary-action" onClick={closeLineForm} type="button">
-                Cancel
-              </button>
+              <button className="secondary-action" onClick={closeLineForm} type="button">Cancel</button>
               <button className="primary-action" disabled={!canAddLine} onClick={addLine} type="button">
-                <Plus size={16} />
-                <span>Add</span>
+                <Plus size={16} /><span>Add</span>
               </button>
             </div>
           </div>
           <div className="quote-line-form-grid">
             <label className="field quote-line-part">
               <span>Part description</span>
-              <input
-                onChange={(event) => updateLineDraft("part", event.target.value)}
-                placeholder="PLATE 200 x 100"
-                value={lineDraft.part}
-              />
+              <input onChange={(e) => updateLineDraft("part", e.target.value)} placeholder="PLATE 200 x 100" value={lineDraft.part} />
             </label>
             <label className="field">
               <span>Material</span>
-              <select onChange={(event) => selectMaterialRate(event.target.value)} value={lineDraft.materialRateId}>
+              <select onChange={(e) => selectMaterialRate(e.target.value)} value={lineDraft.materialRateId}>
                 {materialRates.map((rate) => (
                   <option key={rate.id} value={rate.id}>{getMaterialRateLabel(rate)}</option>
                 ))}
               </select>
             </label>
-            <label className="field">
-              <span>Type</span>
-              <input readOnly value={lineDraft.materialType} />
-            </label>
-            <label className="field">
-              <span>Thickness</span>
-              <input readOnly value={lineDraft.thickness} />
-            </label>
-            <label className="field">
-              <span>Feed</span>
-              <input readOnly value={lineDraft.feed} />
-            </label>
+            <label className="field"><span>Type</span><input readOnly value={lineDraft.materialType} /></label>
+            <label className="field"><span>Thickness</span><input readOnly value={lineDraft.thickness} /></label>
+            <label className="field"><span>Feed</span><input readOnly value={lineDraft.feed} /></label>
             <label className="field">
               <span>Qty</span>
-              <input
-                min="1"
-                onChange={(event) => updateLineDraft("qty", event.target.value)}
-                type="number"
-                value={lineDraft.qty}
-              />
+              <input min="1" onChange={(e) => updateLineDraft("qty", e.target.value)} type="number" value={lineDraft.qty} />
             </label>
             <label className="field">
               <span>Cut Rate</span>
-              <input
-                min="0"
-                onChange={(event) => updateLineDraft("cut", event.target.value)}
-                step="0.01"
-                type="number"
-                value={lineDraft.cut}
-              />
+              <input min="0" onChange={(e) => updateLineDraft("cut", e.target.value)} step="0.01" type="number" value={lineDraft.cut} />
             </label>
-            <label className="field">
-              <span>Cost per M2</span>
-              <input readOnly value={lineDraft.costPerM2} />
-            </label>
+            <label className="field"><span>Cost per M2</span><input readOnly value={lineDraft.costPerM2} /></label>
             <label className="field">
               <span>Piercing Rate</span>
-              <input
-                min="0"
-                onChange={(event) => updateLineDraft("pierce", event.target.value)}
-                step="0.01"
-                type="number"
-                value={lineDraft.pierce}
-              />
+              <input min="0" onChange={(e) => updateLineDraft("pierce", e.target.value)} step="0.01" type="number" value={lineDraft.pierce} />
             </label>
             <div className="quote-line-total">
               <span>Line total</span>
@@ -2300,34 +2290,20 @@ function QuoteWorkbench({
         </section>
       )}
 
-      <div className="quote-line-list-heading">
-        <div className="quote-detail-tabs">
-          <button aria-selected={true} type="button">Detail</button>
-          <button type="button">Others</button>
-          <button type="button">Holes</button>
-          <button type="button">Advanced</button>
-        </div>
+      {/* ── Line items table ── */}
+      <div className="qf-lines-heading">
+        <span className="qf-label">SMART SEARCH</span>
+        <div style={{ flex: 1 }} />
         <button className="primary-action" onClick={openLineForm} type="button">
-          <Plus size={16} />
-          <span>Add Line</span>
+          <Plus size={14} /><span>Add Line</span>
         </button>
       </div>
-
       <div className="quote-lines-table table-wrap">
-        <table>
+        <table className="qf-lines-tbl">
           <thead>
             <tr>
-              <th>S/N</th>
-              <th>Part number</th>
-              <th>Description</th>
-              <th>mm</th>
-              <th>Material</th>
-              <th>Qty</th>
-              <th>Matrl</th>
-              <th>Rate</th>
-              <th>Other</th>
-              <th>Total$</th>
-              <th>Status</th>
+              <th>S/N</th><th>Prog. No</th><th>Part number</th><th>CC</th><th>Description</th>
+              <th>mm</th><th>Material</th><th>Qty</th><th>Matrl</th><th>Rate</th><th>Other</th><th>Total$</th><th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -2337,8 +2313,10 @@ function QuoteWorkbench({
                 key={`${line.part}-${index}`}
                 onClick={() => setSelectedLineIndex(index)}
               >
-                <td>{index + 1}</td>
+                <td>{index}</td>
                 <td>{1372916 + index}</td>
+                <td className="qf-muted">PART NUMBER</td>
+                <td>CC</td>
                 <td>{line.part}</td>
                 <td>{line.thickness.replace(" mm", "")}</td>
                 <td>{line.material}</td>
@@ -2347,32 +2325,52 @@ function QuoteWorkbench({
                 <td>{currency.format(line.cut)}</td>
                 <td>{detailTab === "others" ? currency.format(subcontractTotal) : ""}</td>
                 <td>{currency.format(line.total)}</td>
-                <td>Complete</td>
+                <td className="qf-status-complete">COMPLETE</td>
               </tr>
             ))}
             {lines.length === 0 && (
-              <tr>
-                <td className="empty-table-cell" colSpan={11}>No line items yet.</td>
-              </tr>
+              <tr><td className="empty-table-cell" colSpan={13}>No line items yet. Click Add Line to begin.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      <div className="quote-footer-grid">
-        <label className="quote-notes-panel">
-          <span>Notes</span>
-          <textarea onChange={(event) => setQuoteComments(event.target.value)} placeholder="Comments about this quote" value={quoteComments} />
-        </label>
-        <div className="quote-totals-panel">
-          <div><span>Subtotal</span><strong>{currency.format(quote.total)}</strong></div>
-          <div><span>Other</span><strong>{currency.format(subcontractTotal)}</strong></div>
-          <div><span>GST</span><strong>{currency.format(gst)}</strong></div>
-          <div><span>Total GST Inc.</span><strong>{currency.format(totalIncGst + subcontractTotal)}</strong></div>
+      {/* ── Footer ── */}
+      <div className="qf-footer">
+        <div className="qf-notes-col">
+          <div className="qf-section-head">NOTES</div>
+          <textarea onChange={(e) => setQuoteComments(e.target.value)} placeholder="Notes about this quote" value={quoteComments} />
         </div>
-        <div className="quote-customer-notes">
-          <span>Customer Notes</span>
-          <p>{selectedClient.notes || "No customer notes recorded."}</p>
+        <div className="qf-delivery-col">
+          <div className="qf-section-head">QUOTE DELIVERY</div>
+          <textarea placeholder="Delivery notes" />
+          <div className="qf-section-head" style={{ marginTop: 4 }}>OTHER NOTE</div>
+          <table className="qf-summary-table">
+            <thead><tr><th>Material</th><th>Total</th><th>Weight</th><th>Time</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Laser</td>
+                <td>{currency.format(lines.reduce((s, l) => s + (l.costPerM2 ?? 0), 0))}</td>
+                <td>{currency.format(lines.reduce((s, l) => s + l.total, 0))}</td>
+                <td>0</td>
+                <td>{lines.reduce((s, l) => s + (l.total / 30), 0).toFixed(2)}</td>
+              </tr>
+              <tr><td>Plasma</td><td>0</td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+          <div className="qf-valid-row"><span>Quote Valid for:</span><span>QUOTE IS VALID FOR 30 DAYS</span></div>
+          <div className="qf-valid-row"><span>Approved by:</span><span></span></div>
+        </div>
+        <div className="qf-totals-col">
+          <div><span>Subtotal:</span><strong>{currency.format(quote.total)}</strong></div>
+          <div><span>Delivery:</span><strong></strong></div>
+          <div><span>Total Del. Inc.:</span><strong>{currency.format(quote.total)}</strong></div>
+          <div><span>GST:</span><strong>{currency.format(gst)}</strong></div>
+          <div><span>Total GST Inc.:</span><strong>{currency.format(totalIncGst)}</strong></div>
+        </div>
+        <div className="qf-cost-col">
+          <div className="qf-section-head">Cost Amount</div>
+          <strong>{currency.format(lines.reduce((s, l) => s + (l.costPerM2 ?? 0), 0))}</strong>
         </div>
       </div>
     </article>

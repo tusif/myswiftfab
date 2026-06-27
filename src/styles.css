@@ -1704,3 +1704,334 @@ td {
     justify-self: start;
   }
 }
+
+/* ── Quote Form (qf-*) ── */
+.quote-panel { display: grid; gap: 0; }
+
+.qf-header { display: flex; border: 1px solid #c0b8b0; border-bottom: none; font-size: 11px; }
+
+.qf-header-left {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  flex: 1;
+  border-right: 2px solid #8f8a82;
+}
+
+.qf-col-head {
+  background: #4b1f60;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  text-align: center;
+  text-transform: uppercase;
+  border-right: 1px solid #6b3f80;
+}
+
+.qf-cell {
+  padding: 6px 8px;
+  border-right: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qf-cell select {
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  width: 100%;
+  padding: 0;
+}
+
+.qf-header-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 10px;
+  gap: 4px;
+  min-width: 380px;
+}
+
+.qf-status-bar, .qf-sales-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.qf-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #666;
+  white-space: nowrap;
+}
+
+.qf-status-badge {
+  background: #2a7a2a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.qf-field-val {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+/* Calculator */
+.qf-calc-panel {
+  border: 1px solid #c0b8b0;
+  border-bottom: none;
+  background: #faf8f5;
+}
+
+.qf-calc-tabs {
+  display: flex;
+  border-bottom: 1px solid #c0b8b0;
+  background: #eee8dd;
+}
+
+.qf-calc-tab {
+  padding: 5px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  border-right: 1px solid #c0b8b0;
+  background: transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.qf-calc-tab[aria-selected="true"] {
+  background: #4b1f60;
+  color: #fff;
+}
+
+.qf-calc-body { overflow-x: auto; }
+
+.qf-calc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.qf-calc-table th {
+  background: #4b1f60;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid #7a5f8a;
+}
+
+.qf-calc-table td {
+  padding: 3px 8px;
+  border: 1px solid #ddd;
+  font-size: 11px;
+  text-align: center;
+}
+
+.qf-row-label {
+  background: #eee8dd;
+  font-weight: 700;
+  text-align: left !important;
+  white-space: nowrap;
+}
+
+.qf-empty-row { height: 22px; }
+
+.qf-calc-summary {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #c0b8b0;
+  background: #eee8dd;
+  padding: 4px 8px;
+  gap: 12px;
+}
+
+.qf-summary-cells {
+  display: flex;
+  gap: 0;
+}
+
+.qf-summary-cells > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 10px;
+  border-right: 1px solid #c0b8b0;
+  min-width: 60px;
+}
+
+.qf-summary-cells span { font-size: 9px; color: #666; text-transform: uppercase; }
+.qf-summary-cells strong { font-size: 11px; font-weight: 700; }
+
+.qf-summary-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.qf-summary-desc input {
+  border: 1px solid #ccc;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 6px;
+  text-transform: uppercase;
+  width: 100%;
+  background: #fff;
+}
+
+.qf-summary-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.qf-summary-total span { font-size: 10px; color: #666; }
+.qf-summary-total strong { font-size: 13px; font-weight: 800; }
+
+/* Lines heading */
+.qf-lines-heading {
+  display: flex;
+  align-items: center;
+  background: #eee8dd;
+  border: 1px solid #c0b8b0;
+  border-bottom: none;
+  padding: 4px 10px;
+  gap: 8px;
+}
+
+/* Lines table */
+.qf-lines-tbl { min-width: 1100px; border-collapse: collapse; width: 100%; }
+
+.qf-lines-tbl th {
+  background: #4b1f60;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 6px;
+  text-align: center;
+  border: 1px solid #7a5f8a;
+  white-space: nowrap;
+}
+
+.qf-lines-tbl td {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.qf-lines-tbl tr[aria-current="true"] td { background: #fff875; }
+.qf-lines-tbl tbody tr:hover { background: #f0f0e8; cursor: pointer; }
+.qf-muted { color: #aaa !important; }
+.qf-status-complete { color: #2a7a2a; font-weight: 800; }
+
+/* Footer */
+.qf-footer {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto auto;
+  border: 1px solid #c0b8b0;
+  border-top: none;
+  background: #eee8dd;
+  font-size: 11px;
+}
+
+.qf-notes-col, .qf-delivery-col {
+  border-right: 1px solid #c0b8b0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qf-notes-col textarea, .qf-delivery-col textarea {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  font-size: 11px;
+  resize: none;
+  min-height: 60px;
+}
+
+.qf-section-head {
+  background: #4b1f60;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.qf-summary-table {
+  border-collapse: collapse;
+  font-size: 10px;
+  width: 100%;
+}
+
+.qf-summary-table th, .qf-summary-table td {
+  border: 1px solid #ccc;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.qf-summary-table th { background: #4b1f60; color: #fff; }
+
+.qf-valid-row {
+  display: flex;
+  gap: 8px;
+  padding: 3px 8px;
+  font-size: 10px;
+  border-top: 1px solid #ccc;
+}
+
+.qf-valid-row span:first-child { font-weight: 700; white-space: nowrap; }
+
+.qf-totals-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 14px;
+  border-right: 1px solid #c0b8b0;
+  min-width: 200px;
+}
+
+.qf-totals-col > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 11px;
+}
+
+.qf-totals-col span { font-weight: 600; }
+.qf-totals-col strong { font-size: 12px; font-weight: 800; }
+
+.qf-cost-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 14px;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.qf-cost-col strong { font-size: 14px; font-weight: 800; }
