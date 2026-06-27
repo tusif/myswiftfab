@@ -2255,8 +2255,8 @@ function QuoteWorkbench({
                   <tfoot>
                     <tr>
                       <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
-                      <td style={{ fontWeight: 700 }}>{currency.format(othersCostTotal)}</td>
-                      <td style={{ fontWeight: 700 }}>{currency.format(othersAmountTotal)}</td>
+                      <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersCostTotal)}</td>
+                      <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersAmountTotal)}</td>
                       <td colSpan={4}></td>
                     </tr>
                   </tfoot>
@@ -2298,7 +2298,7 @@ function QuoteWorkbench({
             <div><span>Material</span><strong>{selectedLine ? currency.format(selectedLine.costPerM2 ?? 0) : "—"}</strong></div>
             <div><span>Cutting</span><strong>{selectedLine ? currency.format(selectedLine.cut) : "—"}</strong></div>
             <div><span>Piercing</span><strong>{selectedLine ? selectedLine.pierce.toFixed(2) : "—"}</strong></div>
-            <div><span>Other</span><strong>0</strong></div>
+            <div><span>Other</span><strong>{currency.format(othersAmountTotal)}</strong></div>
             <div><span>Rate</span><strong>{selectedLine ? currency.format(selectedLine.total / Math.max(selectedLine.qty,1)) : "—"}</strong></div>
             <div><span>Weight</span><strong>0</strong></div>
             <div><span>Time (min)</span><strong>{selectedLine ? (selectedLine.total/30).toFixed(2) : "—"}</strong></div>
