@@ -22,6 +22,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -354,6 +355,39 @@ h3 {
   box-shadow: 0 0 0 3px rgb(245 124 32 / 16%);
 }
 
+.material-filter-bar {
+  align-items: end;
+  background: #eee8dd;
+  border-bottom: 1px solid #d9d1c3;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(240px, 0.5fr);
+  padding: 16px 18px;
+}
+
+.material-filter-bar label {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.material-filter-bar span {
+  color: #1f252e;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.material-filter-bar select {
+  background: #fff;
+  border: 1px solid #8f8a82;
+  color: #202024;
+  min-height: 38px;
+  padding: 0 12px;
+  width: 100%;
+}
+
 .customer-list {
   display: grid;
 }
@@ -450,8 +484,12 @@ h3 {
 .quote-line-form-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(180px, 1.6fr) repeat(5, minmax(92px, 1fr)) minmax(110px, 0.8fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 14px 18px 18px;
+}
+
+.quote-line-part {
+  grid-column: span 2;
 }
 
 .quote-line-total {
@@ -951,6 +989,7 @@ h3 {
 }
 
 .field input,
+.field select,
 .field textarea {
   background: #fff;
   border: 1px solid #d7dce2;
@@ -965,6 +1004,7 @@ h3 {
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   border-color: #f57c20;
   box-shadow: 0 0 0 3px rgb(245 124 32 / 16%);
@@ -1098,6 +1138,7 @@ td {
   .page-grid,
   .settings-grid,
   .kanban,
+  .material-filter-bar,
   .customer-workspace {
     grid-template-columns: 1fr;
   }
@@ -1148,6 +1189,15 @@ td {
   }
 
   .quote-line-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-line-part {
+    grid-column: span 1;
+  }
+
+  .material-filter-bar label {
+    align-items: stretch;
     grid-template-columns: 1fr;
   }
 

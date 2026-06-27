@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { hasSupabaseConfig } from "./lib/supabase";
+import { materialRates, type MaterialRate } from "./materialRates";
 
 type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "settings";
 
@@ -97,8 +98,13 @@ type QuoteRecord = {
 
 type QuoteLine = {
   part: string;
+  materialType?: string;
   material: string;
   thickness: string;
+  feed?: number | null;
+  cutRate?: number | null;
+  costPerM2?: number | null;
+  piercingRate?: number | null;
   qty: number;
   cut: number;
   pierce: number;
@@ -107,8 +113,12 @@ type QuoteLine = {
 
 type QuoteLineDraft = {
   part: string;
+  materialRateId: string;
+  materialType: string;
   material: string;
   thickness: string;
+  feed: string;
+  costPerM2: string;
   qty: string;
   cut: string;
   pierce: string;
@@ -356,6 +366,15 @@ function splitContactTypes(kind: string) {
     .filter(Boolean);
 }
 
+function formatMaterialValue(value: number | null, suffix = "") {
+  if (value === null) return "";
+  return `${value}${suffix}`;
+}
+
+function getMaterialRateLabel(rate: MaterialRate) {
+  return `${rate.material} - ${formatMaterialValue(rate.thickness, " mm")} - ${rate.type}`;
+}
+
 function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, contact: string): QuoteRecord {
   const nextQuoteNumber =
     Math.max(400119, ...existingQuotes.map((quote) => Number(quote.quote)).filter(Number.isFinite)) + 1;
@@ -372,13 +391,19 @@ function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, con
 }
 
 function createBlankQuoteLineDraft(): QuoteLineDraft {
+  const defaultMaterial = materialRates.find((rate) => rate.material === "M/S" && rate.thickness === 10) ?? materialRates[0];
+
   return {
     part: "",
-    material: "M/S",
-    thickness: "",
+    materialRateId: defaultMaterial.id,
+    materialType: defaultMaterial.type,
+    material: defaultMaterial.material,
+    thickness: formatMaterialValue(defaultMaterial.thickness, " mm"),
+    feed: formatMaterialValue(defaultMaterial.feed),
+    costPerM2: formatMaterialValue(defaultMaterial.costPerM2),
     qty: "1",
-    cut: "0",
-    pierce: "0",
+    cut: formatMaterialValue(defaultMaterial.cutRate),
+    pierce: formatMaterialValue(defaultMaterial.piercingRate),
   };
 }
 
@@ -389,8 +414,13 @@ function createQuoteLineFromDraft(draft: QuoteLineDraft): QuoteLine {
 
   return {
     part: draft.part.trim(),
+    materialType: draft.materialType.trim(),
     material: draft.material.trim(),
     thickness: draft.thickness.trim(),
+    feed: Number(draft.feed) || null,
+    cutRate: cut,
+    costPerM2: Number(draft.costPerM2) || null,
+    piercingRate: pierce,
     qty,
     cut,
     pierce,
@@ -1135,17 +1165,67 @@ function JobsPage() {
 }
 
 function MaterialsPage() {
+  const [materialSearchQuery, setMaterialSearchQuery] = useState("");
+  const [selectedMaterialName, setSelectedMaterialName] = useState("All");
+  const [selectedMaterialType, setSelectedMaterialType] = useState("All");
+  const normalizedMaterialSearch = materialSearchQuery.trim().toLowerCase();
+  const materialNames = Array.from(new Set(materialRates.map((rate) => rate.material))).sort();
+  const materialTypes = Array.from(new Set(materialRates.map((rate) => rate.type))).sort();
+  const filteredMaterialRates = materialRates.filter((rate) => {
+    const matchesMaterial = selectedMaterialName === "All" || rate.material === selectedMaterialName;
+    const matchesType = selectedMaterialType === "All" || rate.type === selectedMaterialType;
+    const matchesSearch = [
+      rate.type,
+      rate.material,
+      rate.thickness,
+      rate.feed,
+      rate.cutRate,
+      rate.costPerM2,
+      rate.piercingRate,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedMaterialSearch);
+
+    return matchesMaterial && matchesType && matchesSearch;
+  });
+
   return (
     <PagePanel eyebrow="Library" title="Materials and Cutting Rates" actionLabel="Add Material">
-      <Toolbar placeholder="Search material or thickness" />
+      <div className="material-filter-bar">
+        <label>
+          <span>Material</span>
+          <select onChange={(event) => setSelectedMaterialName(event.target.value)} value={selectedMaterialName}>
+            <option value="All">All materials</option>
+            {materialNames.map((materialName) => (
+              <option key={materialName} value={materialName}>{materialName}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Type</span>
+          <select onChange={(event) => setSelectedMaterialType(event.target.value)} value={selectedMaterialType}>
+            <option value="All">All types</option>
+            {materialTypes.map((materialType) => (
+              <option key={materialType} value={materialType}>{materialType}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <Toolbar onChange={setMaterialSearchQuery} placeholder="Search material, type, thickness, or rate" value={materialSearchQuery} />
       <DataTable
-        columns={["Material", "Thickness", "Sheet size", "Cut rate", "Stock"]}
-        rows={materials.map((material) => [
-          material.name,
-          material.thickness,
-          material.size,
-          material.rate,
-          <Badge key={`${material.name}-${material.thickness}`} label={material.stock} />,
+        columns={["Type", "Materials", "Thickness", "Feed", "Density", "Cut Rate", "Cost per M2", "Piercing Rate", "Piercing Time"]}
+        emptyMessage="No material rates found."
+        rows={filteredMaterialRates.map((rate) => [
+          rate.type,
+          rate.material,
+          formatMaterialValue(rate.thickness),
+          formatMaterialValue(rate.feed),
+          formatMaterialValue(rate.density),
+          rate.cutRate === null ? "" : currency.format(rate.cutRate),
+          rate.costPerM2 === null ? "" : currency.format(rate.costPerM2),
+          rate.piercingRate === null ? "" : currency.format(rate.piercingRate),
+          formatMaterialValue(rate.piercingTime),
         ])}
       />
     </PagePanel>
@@ -1584,6 +1664,23 @@ function QuoteWorkbench({
     setIsLineFormOpen(true);
   };
 
+  const selectMaterialRate = (materialRateId: string) => {
+    const selectedRate = materialRates.find((rate) => rate.id === materialRateId);
+    if (!selectedRate) return;
+
+    setLineDraft((current) => ({
+      ...current,
+      materialRateId: selectedRate.id,
+      materialType: selectedRate.type,
+      material: selectedRate.material,
+      thickness: formatMaterialValue(selectedRate.thickness, " mm"),
+      feed: formatMaterialValue(selectedRate.feed),
+      costPerM2: formatMaterialValue(selectedRate.costPerM2),
+      cut: formatMaterialValue(selectedRate.cutRate),
+      pierce: formatMaterialValue(selectedRate.piercingRate),
+    }));
+  };
+
   const closeLineForm = () => {
     setIsLineFormOpen(false);
     setLineDraft(createBlankQuoteLineDraft());
@@ -1645,18 +1742,23 @@ function QuoteWorkbench({
             </label>
             <label className="field">
               <span>Material</span>
-              <input
-                onChange={(event) => updateLineDraft("material", event.target.value)}
-                value={lineDraft.material}
-              />
+              <select onChange={(event) => selectMaterialRate(event.target.value)} value={lineDraft.materialRateId}>
+                {materialRates.map((rate) => (
+                  <option key={rate.id} value={rate.id}>{getMaterialRateLabel(rate)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>Type</span>
+              <input readOnly value={lineDraft.materialType} />
             </label>
             <label className="field">
               <span>Thickness</span>
-              <input
-                onChange={(event) => updateLineDraft("thickness", event.target.value)}
-                placeholder="10 mm"
-                value={lineDraft.thickness}
-              />
+              <input readOnly value={lineDraft.thickness} />
+            </label>
+            <label className="field">
+              <span>Feed</span>
+              <input readOnly value={lineDraft.feed} />
             </label>
             <label className="field">
               <span>Qty</span>
@@ -1668,7 +1770,7 @@ function QuoteWorkbench({
               />
             </label>
             <label className="field">
-              <span>Cut</span>
+              <span>Cut Rate</span>
               <input
                 min="0"
                 onChange={(event) => updateLineDraft("cut", event.target.value)}
@@ -1678,7 +1780,11 @@ function QuoteWorkbench({
               />
             </label>
             <label className="field">
-              <span>Pierce</span>
+              <span>Cost per M2</span>
+              <input readOnly value={lineDraft.costPerM2} />
+            </label>
+            <label className="field">
+              <span>Piercing Rate</span>
               <input
                 min="0"
                 onChange={(event) => updateLineDraft("pierce", event.target.value)}
