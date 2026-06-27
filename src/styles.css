@@ -1944,6 +1944,7 @@ td {
 }
 
 /* Lines table */
+.quote-lines-table.table-wrap { max-height: 300px; overflow-y: auto; overflow-x: auto; }
 .qf-lines-tbl { min-width: 1100px; border-collapse: collapse; width: 100%; }
 
 .qf-lines-tbl th {
@@ -1954,6 +1955,9 @@ td {
   text-align: center;
   border: 1px solid #2a6070;
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .qf-lines-tbl td {
