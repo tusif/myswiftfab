@@ -2068,6 +2068,8 @@ function QuoteWorkbench({
           {onNewQuote && (
             <button className="primary-action" onClick={onNewQuote} type="button">+ New Quote</button>
           )}
+          <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
+          <button className="primary-action" onClick={addOtherRow} type="button">+ Add Category</button>
         </div>
       )}
 
@@ -2217,7 +2219,6 @@ function QuoteWorkbench({
                 <table className="qf-others-tbl">
                   <thead>
                     <tr>
-                      <th><button className="qf-others-add-btn" onClick={addOtherRow} type="button">+ Add</button></th>
                       <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
                     </tr>
                   </thead>
@@ -2228,7 +2229,6 @@ function QuoteWorkbench({
                       const amountTotal = salesEach * o.qty;
                       return (
                         <tr key={o.id}>
-                          <td></td>
                           <td className="qf-others-cat-cell">
                             <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
                               {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
@@ -2249,15 +2249,15 @@ function QuoteWorkbench({
                       );
                     })}
                     {currentOthers.length === 0 && (
-                      <tr className="qf-others-placeholder"><td colSpan={12}>No others for this line — click + Add</td></tr>
+                      <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add Category above</td></tr>
                     )}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={6} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
+                      <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
                       <td style={{ fontWeight: 700 }}>{currency.format(othersCostTotal)}</td>
                       <td style={{ fontWeight: 700 }}>{currency.format(othersAmountTotal)}</td>
-                      <td colSpan={5}></td>
+                      <td colSpan={4}></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -2376,9 +2376,6 @@ function QuoteWorkbench({
           <button className="qf-calc-tab" type="button">Advanced</button>
         </div>
         <span className="qf-label" style={{ padding: "0 12px" }}>Minimum Cutting Charge</span>
-        <button className="primary-action" onClick={openLineForm} type="button">
-          <Plus size={14} /><span>+ Add Line</span>
-        </button>
         <button className="qf-dup-btn" type="button">DUPLICATE</button>
       </div>
       <div className="quote-lines-table table-wrap">
