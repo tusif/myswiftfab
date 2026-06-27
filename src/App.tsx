@@ -965,13 +965,21 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   );
 }
 
+const LS_QUOTES = "msf_quotes";
+const LS_LINES = "msf_quote_lines";
+const LS_OTHERS = "msf_quote_others";
+
+function loadFromLS<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+
 function QuotesPage() {
   const [view, setView] = useState<"list" | "form">("list");
-  const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(quotes);
-  const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(quotes[0]);
-  const [quoteLineRecords, setQuoteLineRecords] = useState<Record<string, QuoteLine[]>>({
-    [quotes[0].quote]: quoteLines,
-  });
+  const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(() => loadFromLS(LS_QUOTES, quotes));
+  const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(() => { const saved = loadFromLS<QuoteRecord[]>(LS_QUOTES, quotes); return saved[0] ?? quotes[0]; });
+  const [quoteLineRecords, setQuoteLineRecords] = useState<Record<string, QuoteLine[]>>(() =>
+    loadFromLS(LS_LINES, { [quotes[0].quote]: quoteLines })
+  );
   const [quoteSearchQuery, setQuoteSearchQuery] = useState("");
   const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -1079,6 +1087,12 @@ function QuotesPage() {
     );
   };
 
+  const saveQuote = (lineOthers: Record<number, OtherLineItem[]>) => {
+    localStorage.setItem(LS_QUOTES, JSON.stringify(quoteRecords));
+    localStorage.setItem(LS_LINES, JSON.stringify(quoteLineRecords));
+    localStorage.setItem(LS_OTHERS + "_" + currentQuote.quote, JSON.stringify(lineOthers));
+  };
+
   if (view === "form") {
     return (
       <QuoteWorkbench
@@ -1087,6 +1101,8 @@ function QuotesPage() {
         quote={currentQuote}
         onBack={() => setView("list")}
         onNewQuote={openNewQuoteClientPicker}
+        onSave={saveQuote}
+        savedOthers={loadFromLS(LS_OTHERS + "_" + currentQuote.quote, {})}
       />
     );
   }
@@ -1957,6 +1973,8 @@ function QuoteWorkbench({
   onAddLine,
   onBack,
   onNewQuote,
+  onSave,
+  savedOthers,
   quote = quotes[0],
 }: {
   compact?: boolean;
@@ -1964,6 +1982,8 @@ function QuoteWorkbench({
   onAddLine?: (line: QuoteLine) => void;
   onBack?: () => void;
   onNewQuote?: () => void;
+  onSave?: (lineOthers: Record<number, OtherLineItem[]>) => void;
+  savedOthers?: Record<number, OtherLineItem[]>;
   quote?: QuoteRecord;
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
@@ -1974,7 +1994,8 @@ function QuoteWorkbench({
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
-  const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>({});
+  const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
   const selectedLine = lines[selectedLineIndex] ?? null;
   const gst = quote.total * 0.1;
@@ -2070,6 +2091,11 @@ function QuoteWorkbench({
           )}
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
           <button className="primary-action" onClick={addOtherRow} type="button">+ Add Category</button>
+          {onSave && (
+            <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
+              {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
+            </button>
+          )}
         </div>
       )}
 

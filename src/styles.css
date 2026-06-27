@@ -265,6 +265,7 @@ h3 {
 }
 
 .quote-back-bar { align-items: center; display: flex; gap: 14px; padding: 10px 0 4px; }
+.qf-save-btn { align-items: center; background: #2a7a2a; border: none; border-radius: 8px; color: #fff; cursor: pointer; display: inline-flex; font-weight: 800; gap: 6px; min-height: 38px; padding: 0 16px; white-space: nowrap; margin-left: auto; }
 .quote-back-ref { color: #333; font-weight: 600; }
 
 .quote-panel,
