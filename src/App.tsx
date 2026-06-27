@@ -2154,8 +2154,8 @@ function QuoteWorkbench({
               <button aria-selected={detailTab === "others"} className="qf-calc-tab" onClick={() => setDetailTab("others")} type="button">Others</button>
             </div>
 
-            {/* Material grid: rows = fields, cols = Material / Supplied / Offset / Side1 / Side2 / Incl. */}
-            <table className="qf-calc-table">
+            {/* Material grid — hidden when Others tab active */}
+            <table className="qf-calc-table" style={detailTab === "others" ? { display: "none" } : undefined}>
               <thead>
                 <tr>
                   <th className="qf-row-head">Material</th>
