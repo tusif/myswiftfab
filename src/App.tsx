@@ -99,6 +99,18 @@ type QuoteRecord = {
   delivery?: number;
 };
 
+type OtherLineItem = {
+  id: string;
+  category: string;
+  description: string;
+  qty: number;
+  cost: number;
+  markupPct: number;
+  supplier: string;
+  staff: string;
+  ref: string;
+};
+
 type QuoteLine = {
   part: string;
   materialType?: string;
@@ -1959,23 +1971,29 @@ function QuoteWorkbench({
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
-  const [otherCategory, setOtherCategory] = useState("BENDING");
-  const [otherDescription, setOtherDescription] = useState("");
-  const [otherQty, setOtherQty] = useState("1");
-  const [subcontractCost, setSubcontractCost] = useState("0");
-  const [markupPercent, setMarkupPercent] = useState("20");
-  const [otherSupplier, setOtherSupplier] = useState("");
-  const [otherStaff, setOtherStaff] = useState("");
-  const [otherReference, setOtherReference] = useState("");
+  const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>({});
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
   const selectedLine = lines[selectedLineIndex] ?? null;
   const gst = quote.total * 0.1;
   const totalIncGst = quote.total + gst;
-  const otherQtyNumber = Number(otherQty) || 0;
-  const otherCostNumber = Number(subcontractCost) || 0;
-  const otherSalesEach = otherCostNumber * (1 + (Number(markupPercent) || 0) / 100);
-  const otherCostTotal = otherCostNumber * otherQtyNumber;
-  const subcontractTotal = otherSalesEach * otherQtyNumber;
+  const currentOthers = lineOthers[selectedLineIndex] ?? [];
+  const othersCostTotal = currentOthers.reduce((s, o) => s + o.cost * o.qty, 0);
+  const othersAmountTotal = currentOthers.reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0);
+
+  function addOtherRow() {
+    const row: OtherLineItem = { id: crypto.randomUUID(), category: "CATEGORY", description: "", qty: 1, cost: 0, markupPct: 20, supplier: "", staff: "", ref: "" };
+    setLineOthers((prev) => ({ ...prev, [selectedLineIndex]: [...(prev[selectedLineIndex] ?? []), row] }));
+  }
+  function updateOtherRow(id: string, field: keyof OtherLineItem, value: string | number) {
+    setLineOthers((prev) => ({
+      ...prev,
+      [selectedLineIndex]: (prev[selectedLineIndex] ?? []).map((o) => o.id === id ? { ...o, [field]: value } : o),
+    }));
+  }
+  function removeOtherRow(id: string) {
+    setLineOthers((prev) => ({ ...prev, [selectedLineIndex]: (prev[selectedLineIndex] ?? []).filter((o) => o.id !== id) }));
+  }
+
   const draftLine = createQuoteLineFromDraft(lineDraft);
   const canAddLine = Boolean(lineDraft.part.trim() && lineDraft.material.trim() && lineDraft.thickness.trim() && draftLine.qty > 0);
 
@@ -2189,42 +2207,54 @@ function QuoteWorkbench({
 
             {/* Others table */}
             {detailTab === "others" && (
-              <table className="qf-calc-table qf-others-tbl">
-                <thead>
-                  <tr>
-                    <th>Category</th><th>Qty</th><th>Cost</th><th>%age</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>
-                      <input onChange={(e) => setOtherCategory(e.target.value)} value={otherCategory} />
-                      <input className="qf-subdesc" onChange={(e) => setOtherDescription(e.target.value)} placeholder="Description" value={otherDescription} />
-                    </td>
-                    <td><input onChange={(e) => setOtherQty(e.target.value)} type="number" value={otherQty} /></td>
-                    <td><input onChange={(e) => setSubcontractCost(e.target.value)} type="number" value={subcontractCost} /></td>
-                    <td><input onChange={(e) => setMarkupPercent(e.target.value)} type="number" value={markupPercent} /></td>
-                    <td>{otherSalesEach.toFixed(2)}</td>
-                    <td>{otherCostTotal.toFixed(2)}</td>
-                    <td>{subcontractTotal.toFixed(2)}</td>
-                    <td><input onChange={(e) => setOtherSupplier(e.target.value)} placeholder="Supplier Code" value={otherSupplier} /></td>
-                    <td><input onChange={(e) => setOtherStaff(e.target.value)} placeholder="Staff Name" value={otherStaff} /></td>
-                    <td><input onChange={(e) => setOtherReference(e.target.value)} placeholder="Ref" value={otherReference} /></td>
-                  </tr>
-                  <tr className="qf-others-placeholder">
-                    <td>Category / Description</td><td>Qty</td><td>Cost</td><td>%age</td>
-                    <td>Sales</td><td>Cost</td><td>Sales</td><td>Supplier</td><td>Staff</td><td>Ref</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={5}>Total:</td>
-                    <td>{currency.format(otherCostTotal)}</td>
-                    <td>{currency.format(subcontractTotal)}</td>
-                    <td colSpan={3}></td>
-                  </tr>
-                </tfoot>
-              </table>
+              <div className="qf-others-wrap">
+                <table className="qf-others-tbl">
+                  <thead>
+                    <tr>
+                      <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentOthers.map((o) => {
+                      const salesEach = o.cost * (1 + o.markupPct / 100);
+                      const costTotal = o.cost * o.qty;
+                      const amountTotal = salesEach * o.qty;
+                      return (
+                        <tr key={o.id}>
+                          <td className="qf-others-cat-cell">
+                            <input className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category} />
+                            <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
+                          </td>
+                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
+                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
+                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
+                          <td>{salesEach.toFixed(2)}</td>
+                          <td>{costTotal.toFixed(2)}</td>
+                          <td>{amountTotal.toFixed(2)}</td>
+                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)} placeholder="NAME" value={o.supplier} /></td>
+                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)} placeholder="STAFF" value={o.staff} /></td>
+                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
+                          <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
+                        </tr>
+                      );
+                    })}
+                    {currentOthers.length === 0 && (
+                      <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add</td></tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
+                      <td style={{ fontWeight: 700 }}>{currency.format(othersCostTotal)}</td>
+                      <td style={{ fontWeight: 700 }}>{currency.format(othersAmountTotal)}</td>
+                      <td colSpan={4}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+                <div className="qf-others-add-row">
+                  <button className="qf-all-btn" onClick={addOtherRow} type="button">+ Add</button>
+                </div>
+              </div>
             )}
           </div>
 

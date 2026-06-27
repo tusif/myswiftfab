@@ -1884,8 +1884,21 @@ td {
 .qf-num-input { width: 40px; border: 1px solid #ccc; text-align: center; font-size: 11px; padding: 1px; }
 .qf-del-cell { color: #c00; font-weight: 900; cursor: pointer; padding: 2px 6px !important; }
 
-.qf-others-tbl { margin-top: 4px; }
-.qf-others-placeholder td { color: #bbb; font-size: 9px; font-style: italic; }
+.qf-others-wrap { display: flex; flex-direction: column; margin-top: 4px; }
+.qf-others-tbl { border-collapse: collapse; width: 100%; }
+.qf-others-tbl thead tr { background: #4a1a6e; }
+.qf-others-tbl th { color: #fff; font-weight: 700; padding: 5px 6px; text-align: center; border: 1px solid #6b2a9e; white-space: nowrap; }
+.qf-others-tbl td { padding: 3px 5px; border: 1px solid #ccc; vertical-align: top; }
+.qf-others-tbl tfoot tr { background: #4a1a6e; color: #fff; }
+.qf-others-tbl tfoot td { border: 1px solid #6b2a9e; padding: 4px 6px; }
+.qf-others-cat-cell { min-width: 140px; }
+.qf-others-cat-input { font-weight: 700; width: 100%; border: none; background: transparent; }
+.qf-others-desc-input { display: block; width: 100%; border: none; background: transparent; color: #666; }
+.qf-others-text-input { width: 100%; border: none; background: transparent; }
+.qf-others-del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 16px; padding: 0 4px; }
+.qf-others-del:hover { color: #e74c3c; }
+.qf-others-add-row { padding: 4px 6px; }
+.qf-others-placeholder td { color: #bbb; font-style: italic; padding: 10px; text-align: center; }
 .qf-subdesc { display: block; font-size: 9px; color: #aaa; border: none; background: transparent; width: 100%; }
 
 /* Summary bar */
