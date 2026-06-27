@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -1937,9 +1937,33 @@ function QuoteWorkbench({
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
   const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
-  const subtotal = quote.total / 1.1;
+  const [selectedLineIndex, setSelectedLineIndex] = useState(0);
+  const [detailTab, setDetailTab] = useState<"detail" | "others" | "holes" | "advanced">("detail");
+  const [selectedClientName, setSelectedClientName] = useState(quote.client);
+  const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
+  const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
+  const [quoteComments, setQuoteComments] = useState("");
+  const [subcontractCost, setSubcontractCost] = useState("0");
+  const [markupPercent, setMarkupPercent] = useState("20");
+  const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
+  const selectedLine = lines[selectedLineIndex] ?? null;
+  const gst = quote.total * 0.1;
+  const totalIncGst = quote.total + gst;
+  const subcontractTotal = (Number(subcontractCost) || 0) * (1 + (Number(markupPercent) || 0) / 100);
   const draftLine = createQuoteLineFromDraft(lineDraft);
   const canAddLine = Boolean(lineDraft.part.trim() && lineDraft.material.trim() && lineDraft.thickness.trim() && draftLine.qty > 0);
+
+  useEffect(() => {
+    setSelectedClientName(quote.client);
+    setSelectedStaffName(quote.contact);
+    setSelectedLineIndex(0);
+  }, [quote.client, quote.contact, quote.quote]);
+
+  const selectClientForQuote = (clientName: string) => {
+    const nextClient = contacts.find((contact) => contact.company === clientName) ?? contacts[0];
+    setSelectedClientName(nextClient.company);
+    setSelectedStaffName(nextClient.staff[0]?.name ?? "");
+  };
 
   const updateLineDraft = (field: keyof QuoteLineDraft, value: string) => {
     setLineDraft((current) => ({
@@ -1979,30 +2003,131 @@ function QuoteWorkbench({
     if (!canAddLine) return;
 
     onAddLine?.(draftLine);
+    setSelectedLineIndex(lines.length);
     closeLineForm();
   };
 
   return (
     <article className={compact ? "quote-panel compact" : "quote-panel"}>
-      <PanelHeading eyebrow="Live estimate" title={`Quote ${quote.quote}`} actionLabel="Add Line" onAction={openLineForm} />
-      <div className="quote-summary">
-        <div>
-          <span>Client</span>
-          <strong>{quote.client}</strong>
+      <div className="quote-form-header">
+        <div className="quote-party-grid">
+          <label>
+            <span>Client</span>
+            <select onChange={(event) => selectClientForQuote(event.target.value)} value={selectedClientName}>
+              {contacts
+                .filter((contact) => splitContactTypes(contact.kind).includes("Client"))
+                .map((contact) => (
+                  <option key={contact.id} value={contact.company}>{contact.company}</option>
+                ))}
+            </select>
+          </label>
+          <label>
+            <span>Staff</span>
+            <select onChange={(event) => setSelectedStaffName(event.target.value)} value={selectedStaff?.name ?? ""}>
+              {selectedClient.staff.map((staffMember) => (
+                <option key={staffMember.id} value={staffMember.name}>{staffMember.name}</option>
+              ))}
+            </select>
+          </label>
+          <div>
+            <span>Quote</span>
+            <strong>{quote.quote}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong>{quote.status}</strong>
+          </div>
         </div>
-        <div>
-          <span>Contact</span>
-          <strong>{quote.contact}</strong>
-        </div>
-        <div>
-          <span>Subtotal</span>
-          <strong>{currency.format(subtotal)}</strong>
-        </div>
-        <div>
-          <span>Total inc. GST</span>
-          <strong>{currency.format(quote.total)}</strong>
+        <div className="quote-client-detail">
+          <div>
+            <span>Address</span>
+            <strong>{selectedClient.billingAddress}</strong>
+          </div>
+          <div>
+            <span>Email</span>
+            <strong>{selectedStaff?.email || selectedClient.email}</strong>
+          </div>
+          <div>
+            <span>Phone</span>
+            <strong>{selectedStaff?.direct || selectedStaff?.mobile || selectedClient.phone}</strong>
+          </div>
         </div>
       </div>
+
+      <div className="quote-calculator-panel">
+        <div className="quote-detail-tabs" role="tablist" aria-label="Quote line sections">
+          {(["detail", "others", "holes", "advanced"] as const).map((tab) => (
+            <button
+              aria-selected={detailTab === tab}
+              key={tab}
+              onClick={() => setDetailTab(tab)}
+              type="button"
+            >
+              {tab === "detail" ? "Detail" : tab[0].toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <div className="quote-selected-line">
+          <div className="quote-selected-main">
+            <span>Selected Line</span>
+            <strong>{selectedLine?.part ?? "No line selected"}</strong>
+            <small>{selectedLine ? `${selectedLine.thickness} ${selectedLine.material}` : "Add or select a quote line."}</small>
+          </div>
+          <div className="quote-line-metrics">
+            <div><span>Material</span><strong>{selectedLine?.material ?? "-"}</strong></div>
+            <div><span>Qty</span><strong>{selectedLine?.qty ?? "-"}</strong></div>
+            <div><span>Cut</span><strong>{selectedLine?.cut.toFixed(2) ?? "-"}</strong></div>
+            <div><span>Pierce</span><strong>{selectedLine?.pierce.toFixed(2) ?? "-"}</strong></div>
+            <div><span>Total</span><strong>{selectedLine ? currency.format(selectedLine.total) : "-"}</strong></div>
+          </div>
+        </div>
+
+        {detailTab === "detail" && (
+          <div className="quote-line-detail-grid">
+            <div><span>Size / Description</span><strong>{selectedLine?.part ?? "-"}</strong></div>
+            <div><span>Material Type</span><strong>{selectedLine?.materialType ?? "-"}</strong></div>
+            <div><span>Thickness</span><strong>{selectedLine?.thickness ?? "-"}</strong></div>
+            <div><span>Feed</span><strong>{formatMaterialValue(selectedLine?.feed ?? null)}</strong></div>
+          </div>
+        )}
+
+        {detailTab === "holes" && (
+          <div className="quote-line-detail-grid">
+            <div><span>Hole Type</span><strong>Laser cut holes</strong></div>
+            <div><span>Nos</span><strong>4</strong></div>
+            <div><span>Dia</span><strong>50</strong></div>
+            <div><span>Containing Holes</span><strong>{selectedLine ? "Yes" : "-"}</strong></div>
+          </div>
+        )}
+
+        {detailTab === "others" && (
+          <div className="quote-others-grid">
+            <label className="field">
+              <span>Subcontractor Charge</span>
+              <input onChange={(event) => setSubcontractCost(event.target.value)} type="number" value={subcontractCost} />
+            </label>
+            <label className="field">
+              <span>Markup %</span>
+              <input onChange={(event) => setMarkupPercent(event.target.value)} type="number" value={markupPercent} />
+            </label>
+            <div className="quote-line-total">
+              <span>Other Total</span>
+              <strong>{currency.format(subcontractTotal)}</strong>
+            </div>
+          </div>
+        )}
+
+        {detailTab === "advanced" && (
+          <div className="quote-line-detail-grid">
+            <div><span>Supplied</span><strong>No</strong></div>
+            <div><span>Offset</span><strong>10</strong></div>
+            <div><span>Minimum Cutting Charge</span><strong>{currency.format(0)}</strong></div>
+            <div><span>Status</span><strong>Complete</strong></div>
+          </div>
+        )}
+      </div>
+
       {isLineFormOpen && (
         <section className="quote-line-form" aria-label="Add quote line">
           <div className="quote-line-form-heading">
@@ -2089,21 +2214,82 @@ function QuoteWorkbench({
           </div>
         </section>
       )}
-      <DataTable
-        columns={["Part", "Material", "Qty", "Cut", "Pierce", "Total"]}
-        emptyMessage="No line items yet."
-        rows={lines.map((line) => [
-          <span className="stacked-cell" key={line.part}>
-            <strong>{line.part}</strong>
-            <small>{line.thickness}</small>
-          </span>,
-          line.material,
-          line.qty,
-          line.cut.toFixed(2),
-          line.pierce.toFixed(2),
-          currency.format(line.total),
-        ])}
-      />
+
+      <div className="quote-line-list-heading">
+        <div className="quote-detail-tabs">
+          <button aria-selected={true} type="button">Detail</button>
+          <button type="button">Others</button>
+          <button type="button">Holes</button>
+          <button type="button">Advanced</button>
+        </div>
+        <button className="primary-action" onClick={openLineForm} type="button">
+          <Plus size={16} />
+          <span>Add Line</span>
+        </button>
+      </div>
+
+      <div className="quote-lines-table table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>S/N</th>
+              <th>Part number</th>
+              <th>Description</th>
+              <th>mm</th>
+              <th>Material</th>
+              <th>Qty</th>
+              <th>Matrl</th>
+              <th>Rate</th>
+              <th>Other</th>
+              <th>Total$</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => (
+              <tr
+                aria-current={selectedLineIndex === index ? "true" : undefined}
+                key={`${line.part}-${index}`}
+                onClick={() => setSelectedLineIndex(index)}
+              >
+                <td>{index + 1}</td>
+                <td>{1372916 + index}</td>
+                <td>{line.part}</td>
+                <td>{line.thickness.replace(" mm", "")}</td>
+                <td>{line.material}</td>
+                <td>{line.qty}</td>
+                <td>{currency.format(line.costPerM2 ?? 0)}</td>
+                <td>{currency.format(line.cut)}</td>
+                <td>{detailTab === "others" ? currency.format(subcontractTotal) : ""}</td>
+                <td>{currency.format(line.total)}</td>
+                <td>Complete</td>
+              </tr>
+            ))}
+            {lines.length === 0 && (
+              <tr>
+                <td className="empty-table-cell" colSpan={11}>No line items yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="quote-footer-grid">
+        <label className="quote-notes-panel">
+          <span>Notes</span>
+          <textarea onChange={(event) => setQuoteComments(event.target.value)} placeholder="Comments about this quote" value={quoteComments} />
+        </label>
+        <div className="quote-totals-panel">
+          <div><span>Subtotal</span><strong>{currency.format(quote.total)}</strong></div>
+          <div><span>Other</span><strong>{currency.format(subcontractTotal)}</strong></div>
+          <div><span>GST</span><strong>{currency.format(gst)}</strong></div>
+          <div><span>Total GST Inc.</span><strong>{currency.format(totalIncGst + subcontractTotal)}</strong></div>
+        </div>
+        <div className="quote-customer-notes">
+          <span>Customer Notes</span>
+          <p>{selectedClient.notes || "No customer notes recorded."}</p>
+        </div>
+      </div>
     </article>
   );
 }
