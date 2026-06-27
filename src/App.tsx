@@ -549,7 +549,7 @@ export function App() {
                 title={module.title}
                 type="button"
               >
-                <Icon size={18} />
+                <Icon size={22} />
                 <span>{module.title}</span>
               </button>
             );
