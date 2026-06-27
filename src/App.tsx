@@ -1086,12 +1086,13 @@ function QuotesPage() {
         onAddLine={addQuoteLine}
         quote={currentQuote}
         onBack={() => setView("list")}
+        onNewQuote={openNewQuoteClientPicker}
       />
     );
   }
 
   return (
-    <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="New Quote" onAction={openNewQuoteClientPicker}>
+    <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="">
       <Toolbar
         onChange={setQuoteSearchQuery}
         placeholder="Search quote number or client"
@@ -1955,12 +1956,14 @@ function QuoteWorkbench({
   lines = quoteLines,
   onAddLine,
   onBack,
+  onNewQuote,
   quote = quotes[0],
 }: {
   compact?: boolean;
   lines?: QuoteLine[];
   onAddLine?: (line: QuoteLine) => void;
   onBack?: () => void;
+  onNewQuote?: () => void;
   quote?: QuoteRecord;
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
@@ -2062,6 +2065,9 @@ function QuoteWorkbench({
       {onBack && (
         <div className="quote-back-bar">
           <button className="secondary-action" onClick={onBack} type="button">← Quote List</button>
+          {onNewQuote && (
+            <button className="primary-action" onClick={onNewQuote} type="button">+ New Quote</button>
+          )}
         </div>
       )}
 
