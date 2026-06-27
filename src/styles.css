@@ -229,11 +229,16 @@ h3 {
   white-space: nowrap;
 }
 
-.content-grid,
-.page-grid {
+.content-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+}
+
+.page-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 0.38fr) minmax(0, 1fr);
 }
 
 .settings-grid {
@@ -388,6 +393,91 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.quote-client-picker {
+  border-bottom: 1px solid #e3e7ec;
+  background: #fbfcfd;
+}
+
+.quote-client-picker-heading {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+
+.quote-picker-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.selected-client-strip {
+  align-items: center;
+  background: #fff8f3;
+  border-top: 1px solid #f6d5bd;
+  color: #323842;
+  display: flex;
+  gap: 8px;
+  padding: 10px 18px;
+}
+
+.selected-client-strip span {
+  color: #8a4b24;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.selected-client-strip strong {
+  font-size: 13px;
+}
+
+.client-picker-list {
+  display: grid;
+}
+
+.client-picker-item {
+  align-items: center;
+  background: #fff;
+  border: 0;
+  border-top: 1px solid #e3e7ec;
+  color: #323842;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 66px;
+  padding: 12px 18px;
+  text-align: left;
+  width: 100%;
+}
+
+.client-picker-item:hover {
+  background: #fff8f3;
+}
+
+.client-picker-item span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.client-picker-item strong,
+.client-picker-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-picker-item strong {
+  color: #1f252e;
+  font-size: 14px;
+}
+
+.client-picker-item small {
+  color: #68717d;
+  font-size: 12px;
 }
 
 .customer-detail-header {
@@ -866,6 +956,12 @@ th {
 td {
   color: #323842;
   font-size: 13px;
+}
+
+.empty-table-cell {
+  color: #68717d;
+  font-weight: 700;
+  text-align: center;
 }
 
 .stacked-cell {

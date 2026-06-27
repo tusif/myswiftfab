@@ -85,6 +85,26 @@ type DeliveryAddress = {
   instructions: string;
 };
 
+type QuoteRecord = {
+  quote: string;
+  client: string;
+  contact: string;
+  status: string;
+  lines: number;
+  total: number;
+  margin: string;
+};
+
+type QuoteLine = {
+  part: string;
+  material: string;
+  thickness: string;
+  qty: number;
+  cut: number;
+  pierce: number;
+  total: number;
+};
+
 const modules: Module[] = [
   { id: "dashboard", title: "Dashboard", description: "Daily estimating and production view", icon: Gauge },
   { id: "contacts", title: "Contacts", description: "Clients, suppliers, transport, and people", icon: Users },
@@ -327,14 +347,29 @@ function splitContactTypes(kind: string) {
     .filter(Boolean);
 }
 
-const quotes = [
-  { quote: "400120", client: "Willis Engineering", status: "Draft", lines: 8, total: 4814.35, margin: "34%" },
-  { quote: "400121", client: "Bayside Fabrication", status: "Sent", lines: 5, total: 2240.1, margin: "29%" },
-  { quote: "400122", client: "Henderson Marine", status: "Approved", lines: 14, total: 9133.8, margin: "37%" },
-  { quote: "400123", client: "Perth Access", status: "Review", lines: 3, total: 1184.5, margin: "25%" },
+function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, contact: string): QuoteRecord {
+  const nextQuoteNumber =
+    Math.max(400119, ...existingQuotes.map((quote) => Number(quote.quote)).filter(Number.isFinite)) + 1;
+
+  return {
+    quote: String(nextQuoteNumber),
+    client,
+    contact,
+    status: "Draft",
+    lines: 0,
+    total: 0,
+    margin: "0%",
+  };
+}
+
+const quotes: QuoteRecord[] = [
+  { quote: "400120", client: "Willis Engineering", contact: "Anne Willis", status: "Draft", lines: 8, total: 4814.35, margin: "34%" },
+  { quote: "400121", client: "Bayside Fabrication", contact: "Matt Cooper", status: "Sent", lines: 5, total: 2240.1, margin: "29%" },
+  { quote: "400122", client: "Henderson Marine", contact: "Priya Nair", status: "Approved", lines: 14, total: 9133.8, margin: "37%" },
+  { quote: "400123", client: "Perth Access", contact: "Site contact", status: "Review", lines: 3, total: 1184.5, margin: "25%" },
 ];
 
-const quoteLines = [
+const quoteLines: QuoteLine[] = [
   { part: "PLATE 220 x 100 WITH HOLES TO EMAIL", material: "M/S", thickness: "16 mm", qty: 16, cut: 5.21, pierce: 0.2, total: 187.52 },
   { part: "PLATE 500 x 500 TO EMAIL", material: "M/S", thickness: "10 mm", qty: 4, cut: 9, pierce: 0, total: 184.08 },
   { part: "RECTANGLE 240 x 100", material: "M/S", thickness: "10 mm", qty: 32, cut: 3.06, pierce: 0, total: 234.56 },
@@ -811,13 +846,184 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
 }
 
 function QuotesPage() {
+  const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(quotes);
+  const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(quotes[0]);
+  const [quoteSearchQuery, setQuoteSearchQuery] = useState("");
+  const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [selectedQuoteClient, setSelectedQuoteClient] = useState<Contact | null>(null);
+  const [staffSearchQuery, setStaffSearchQuery] = useState("");
+  const normalizedQuoteSearch = quoteSearchQuery.trim().toLowerCase();
+  const normalizedClientSearch = clientSearchQuery.trim().toLowerCase();
+  const normalizedStaffSearch = staffSearchQuery.trim().toLowerCase();
+  const clientContacts = contacts.filter((contact) => splitContactTypes(contact.kind).includes("Client"));
+  const filteredClientContacts = clientContacts.filter((contact) =>
+    [
+      contact.company,
+      contact.person,
+      contact.phone,
+      contact.email,
+      contact.accountCode,
+      contact.status,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedClientSearch),
+  );
+  const filteredStaffMembers = (selectedQuoteClient?.staff ?? []).filter((staffMember) =>
+    [
+      staffMember.name,
+      staffMember.jobTitle,
+      staffMember.direct,
+      staffMember.mobile,
+      staffMember.email,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedStaffSearch),
+  );
+  const filteredQuoteRecords = quoteRecords.filter((quote) =>
+    [
+      quote.quote,
+      quote.client,
+      quote.contact,
+      quote.status,
+      quote.lines,
+      currency.format(quote.total),
+      quote.margin,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedQuoteSearch),
+  );
+
+  const openNewQuoteClientPicker = () => {
+    setIsClientPickerOpen(true);
+    setClientSearchQuery("");
+    setSelectedQuoteClient(null);
+    setStaffSearchQuery("");
+  };
+
+  const chooseQuoteClient = (client: Contact) => {
+    setSelectedQuoteClient(client);
+    setStaffSearchQuery("");
+  };
+
+  const closeNewQuotePicker = () => {
+    setIsClientPickerOpen(false);
+    setSelectedQuoteClient(null);
+    setClientSearchQuery("");
+    setStaffSearchQuery("");
+  };
+
+  const startNewQuote = (client: Contact, staffMember: StaffMember) => {
+    const newQuote = createNewQuoteRecord(quoteRecords, client.company, staffMember.name);
+    setQuoteRecords([newQuote, ...quoteRecords]);
+    setCurrentQuote(newQuote);
+    setQuoteSearchQuery("");
+    closeNewQuotePicker();
+  };
+
   return (
     <section className="page-grid">
-      <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="New Quote">
-        <Toolbar placeholder="Search quote number or client" />
+      <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="New Quote" onAction={openNewQuoteClientPicker}>
+        <Toolbar
+          onChange={setQuoteSearchQuery}
+          placeholder="Search quote number or client"
+          value={quoteSearchQuery}
+        />
+        {isClientPickerOpen && !selectedQuoteClient && (
+          <section className="quote-client-picker" aria-label="Choose client for new quote">
+            <div className="quote-client-picker-heading">
+              <div>
+                <p className="eyebrow">New Quote</p>
+                <h3>Choose Client</h3>
+              </div>
+              <button className="secondary-action" onClick={closeNewQuotePicker} type="button">
+                Cancel
+              </button>
+            </div>
+            <Toolbar
+              onChange={setClientSearchQuery}
+              placeholder="Search clients"
+              value={clientSearchQuery}
+            />
+            <div className="client-picker-list">
+              {filteredClientContacts.map((contact) => (
+                <button
+                  className="client-picker-item"
+                  key={contact.id}
+                  onClick={() => chooseQuoteClient(contact)}
+                  type="button"
+                >
+                  <span>
+                    <strong>{contact.company}</strong>
+                    <small>{contact.person} - {contact.phone}</small>
+                  </span>
+                  <Badge label={contact.status} />
+                </button>
+              ))}
+              {filteredClientContacts.length === 0 && (
+                <div className="empty-state">
+                  <strong>No clients found</strong>
+                  <span>Try a different client name, contact, phone, or account code.</span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        {isClientPickerOpen && selectedQuoteClient && (
+          <section className="quote-client-picker" aria-label="Choose staff for new quote">
+            <div className="quote-client-picker-heading">
+              <div>
+                <p className="eyebrow">New Quote</p>
+                <h3>Choose Staff</h3>
+              </div>
+              <div className="quote-picker-actions">
+                <button className="secondary-action" onClick={() => setSelectedQuoteClient(null)} type="button">
+                  Back
+                </button>
+                <button className="secondary-action" onClick={closeNewQuotePicker} type="button">
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <div className="selected-client-strip">
+              <span>Client</span>
+              <strong>{selectedQuoteClient.company}</strong>
+            </div>
+            <Toolbar
+              onChange={setStaffSearchQuery}
+              placeholder="Search staff"
+              value={staffSearchQuery}
+            />
+            <div className="client-picker-list">
+              {filteredStaffMembers.map((staffMember) => (
+                <button
+                  className="client-picker-item"
+                  key={staffMember.id}
+                  onClick={() => startNewQuote(selectedQuoteClient, staffMember)}
+                  type="button"
+                >
+                  <span>
+                    <strong>{staffMember.name || "Unnamed staff member"}</strong>
+                    <small>{staffMember.jobTitle || "Staff"} - {staffMember.email || staffMember.mobile || staffMember.direct || "No contact detail"}</small>
+                  </span>
+                  <Badge label={staffMember.title || "Staff"} />
+                </button>
+              ))}
+              {filteredStaffMembers.length === 0 && (
+                <div className="empty-state">
+                  <strong>No staff found</strong>
+                  <span>Try a different staff name, job title, phone, or email.</span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
         <DataTable
           columns={["Quote", "Client", "Status", "Lines", "Total", "Margin"]}
-          rows={quotes.map((quote) => [
+          rows={filteredQuoteRecords.map((quote) => [
             quote.quote,
             quote.client,
             <Badge key={quote.quote} label={quote.status} />,
@@ -827,7 +1033,7 @@ function QuotesPage() {
           ])}
         />
       </PagePanel>
-      <QuoteWorkbench compact />
+      <QuoteWorkbench compact lines={currentQuote.lines === 0 ? [] : quoteLines} quote={currentQuote} />
     </section>
   );
 }
@@ -1276,31 +1482,42 @@ function ContactNotesPanel({
   );
 }
 
-function QuoteWorkbench({ compact = false }: { compact?: boolean }) {
+function QuoteWorkbench({
+  compact = false,
+  lines = quoteLines,
+  quote = quotes[0],
+}: {
+  compact?: boolean;
+  lines?: QuoteLine[];
+  quote?: QuoteRecord;
+}) {
+  const subtotal = quote.total / 1.1;
+
   return (
     <article className={compact ? "quote-panel compact" : "quote-panel"}>
-      <PanelHeading eyebrow="Live estimate" title="Quote 400120" actionLabel="Add Line" />
+      <PanelHeading eyebrow="Live estimate" title={`Quote ${quote.quote}`} actionLabel="Add Line" />
       <div className="quote-summary">
         <div>
           <span>Client</span>
-          <strong>Willis Engineering</strong>
+          <strong>{quote.client}</strong>
         </div>
         <div>
-          <span>Status</span>
-          <strong>Draft</strong>
+          <span>Contact</span>
+          <strong>{quote.contact}</strong>
         </div>
         <div>
           <span>Subtotal</span>
-          <strong>{currency.format(4376.68)}</strong>
+          <strong>{currency.format(subtotal)}</strong>
         </div>
         <div>
           <span>Total inc. GST</span>
-          <strong>{currency.format(4814.35)}</strong>
+          <strong>{currency.format(quote.total)}</strong>
         </div>
       </div>
       <DataTable
         columns={["Part", "Material", "Qty", "Cut", "Pierce", "Total"]}
-        rows={quoteLines.map((line) => [
+        emptyMessage="No line items yet."
+        rows={lines.map((line) => [
           <span className="stacked-cell" key={line.part}>
             <strong>{line.part}</strong>
             <small>{line.thickness}</small>
@@ -1320,16 +1537,18 @@ function PagePanel({
   actionLabel,
   children,
   eyebrow,
+  onAction,
   title,
 }: {
   actionLabel: string;
   children: React.ReactNode;
   eyebrow: string;
+  onAction?: () => void;
   title: string;
 }) {
   return (
     <article className="page-panel">
-      <PanelHeading actionLabel={actionLabel} eyebrow={eyebrow} title={title} />
+      <PanelHeading actionLabel={actionLabel} eyebrow={eyebrow} onAction={onAction} title={title} />
       {children}
     </article>
   );
@@ -1425,9 +1644,11 @@ function Field({
 
 function DataTable({
   columns,
+  emptyMessage,
   rows,
 }: {
   columns: string[];
+  emptyMessage?: string;
   rows: Array<Array<React.ReactNode>>;
 }) {
   return (
@@ -1441,13 +1662,19 @@ function DataTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>
-              ))}
+          {rows.length === 0 ? (
+            <tr>
+              <td className="empty-table-cell" colSpan={columns.length}>{emptyMessage ?? "No records found."}</td>
             </tr>
-          ))}
+          ) : (
+            rows.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={`${rowIndex}-${cellIndex}`}>{cell}</td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
