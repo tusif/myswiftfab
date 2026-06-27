@@ -2013,7 +2013,7 @@ function QuoteWorkbench({
         <div className="quote-party-grid">
           <label>
             <span>Client</span>
-            <select onChange={(event) => selectClientForQuote(event.target.value)} value={selectedClientName}>
+            <select aria-label="Client" onChange={(event) => selectClientForQuote(event.target.value)} value={selectedClientName}>
               {contacts
                 .filter((contact) => splitContactTypes(contact.kind).includes("Client"))
                 .map((contact) => (
@@ -2023,7 +2023,7 @@ function QuoteWorkbench({
           </label>
           <label>
             <span>Staff</span>
-            <select onChange={(event) => setSelectedStaffName(event.target.value)} value={selectedStaff?.name ?? ""}>
+            <select aria-label="Staff" onChange={(event) => setSelectedStaffName(event.target.value)} value={selectedStaff?.name ?? ""}>
               {selectedClient.staff.map((staffMember) => (
                 <option key={staffMember.id} value={staffMember.name}>{staffMember.name}</option>
               ))}
