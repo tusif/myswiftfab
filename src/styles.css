@@ -40,7 +40,7 @@ button {
 .topnav {
   align-items: stretch;
   background: #153f4d;
-  border-bottom: 4px solid #f57c20;
+  border-bottom: 12px solid #f57c20;
   color: #fff;
   display: flex;
   gap: 0;
