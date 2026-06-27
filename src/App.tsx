@@ -2054,9 +2054,8 @@ function QuoteWorkbench({
         <div className="qf-hrow qf-hrow-labels">
           <div className="qf-col-head" style={{ gridColumn: "1" }}>CLIENT</div>
           <div className="qf-col-head" style={{ gridColumn: "2" }}>STAFF</div>
-          <div className="qf-col-head" style={{ gridColumn: "3" }}>TRANSPORTER</div>
-          <div className="qf-col-head" style={{ gridColumn: "4 / span 2" }}>DELIVERY DETAILS</div>
-          <div className="qf-col-head qf-status-col" style={{ gridColumn: "6" }}>
+          <div className="qf-col-head" style={{ gridColumn: "3 / span 2" }}>DELIVERY DETAILS</div>
+          <div className="qf-col-head qf-status-col" style={{ gridColumn: "5" }}>
             <span className="qf-status-badge" style={{ background: statusBg }}>{quote.status.toUpperCase()}</span>
             <span className="qf-label">QUOTE</span>
             <span className="qf-field-val">{quote.quote}</span>
@@ -2090,12 +2089,6 @@ function QuoteWorkbench({
             <span className="qf-subval">{selectedStaff?.direct ?? ""}</span>
             <span className="qf-subval">{selectedStaff?.mobile ?? ""}</span>
             <span className="qf-subval">{selectedStaff?.email ?? ""}</span>
-          </div>
-          {/* Transporter */}
-          <div className="qf-hcell">
-            <input placeholder="Transporter" style={{ width: "100%", border: "none", background: "transparent", fontSize: 11 }} />
-            <input placeholder="Street1" className="qf-subinput" />
-            <input placeholder="Suburb" className="qf-subinput" />
           </div>
           {/* Delivery Street */}
           <div className="qf-hcell">
