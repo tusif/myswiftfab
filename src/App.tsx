@@ -602,7 +602,6 @@ function DashboardPage() {
       </section>
 
       <section className="content-grid">
-        <QuoteWorkbench />
         <section className="activity-panel">
           <PanelHeading eyebrow="Today" title="Production Queue" actionLabel="New Job" />
           <div className="timeline">
