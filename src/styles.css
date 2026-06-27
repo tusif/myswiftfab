@@ -44,6 +44,7 @@ button {
   color: #fff;
   display: flex;
   gap: 0;
+  height: 100px;
   padding: 0;
 }
 
