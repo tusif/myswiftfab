@@ -2221,6 +2221,11 @@ function QuoteWorkbench({
                     </tr>
                   </thead>
                   <tbody>
+                    <tr className="qf-others-add-row">
+                      <td colSpan={11}>
+                        <button className="qf-others-add-btn" onClick={addOtherRow} type="button">+ Add</button>
+                      </td>
+                    </tr>
                     {currentOthers.map((o) => {
                       const salesEach = o.cost * (1 + o.markupPct / 100);
                       const costTotal = o.cost * o.qty;
@@ -2257,9 +2262,6 @@ function QuoteWorkbench({
                     </tr>
                   </tfoot>
                 </table>
-                <div className="qf-others-add-row">
-                  <button className="qf-all-btn" onClick={addOtherRow} type="button">+ Add</button>
-                </div>
               </div>
             )}
           </div>

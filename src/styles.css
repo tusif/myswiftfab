@@ -1897,7 +1897,8 @@ td {
 .qf-others-text-input { width: 100%; border: none; background: transparent; }
 .qf-others-del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 16px; padding: 0 4px; }
 .qf-others-del:hover { color: #e74c3c; }
-.qf-others-add-row { padding: 4px 6px; }
+.qf-others-add-row td { padding: 4px 6px; text-align: left; }
+.qf-others-add-btn { background: #f57c20; border: none; border-radius: 3px; color: #fff; cursor: pointer; font-weight: 700; padding: 6px 14px; }
 .qf-others-placeholder td { color: #bbb; font-style: italic; padding: 10px; text-align: center; }
 .qf-subdesc { display: block; font-size: 9px; color: #aaa; border: none; background: transparent; width: 100%; }
 
