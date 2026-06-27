@@ -105,6 +105,15 @@ type QuoteLine = {
   total: number;
 };
 
+type QuoteLineDraft = {
+  part: string;
+  material: string;
+  thickness: string;
+  qty: string;
+  cut: string;
+  pierce: string;
+};
+
 const modules: Module[] = [
   { id: "dashboard", title: "Dashboard", description: "Daily estimating and production view", icon: Gauge },
   { id: "contacts", title: "Contacts", description: "Clients, suppliers, transport, and people", icon: Users },
@@ -360,6 +369,37 @@ function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, con
     total: 0,
     margin: "0%",
   };
+}
+
+function createBlankQuoteLineDraft(): QuoteLineDraft {
+  return {
+    part: "",
+    material: "M/S",
+    thickness: "",
+    qty: "1",
+    cut: "0",
+    pierce: "0",
+  };
+}
+
+function createQuoteLineFromDraft(draft: QuoteLineDraft): QuoteLine {
+  const qty = Number(draft.qty) || 0;
+  const cut = Number(draft.cut) || 0;
+  const pierce = Number(draft.pierce) || 0;
+
+  return {
+    part: draft.part.trim(),
+    material: draft.material.trim(),
+    thickness: draft.thickness.trim(),
+    qty,
+    cut,
+    pierce,
+    total: qty * (cut + pierce),
+  };
+}
+
+function calculateQuoteTotal(lines: QuoteLine[]) {
+  return lines.reduce((total, line) => total + line.total, 0);
 }
 
 const quotes: QuoteRecord[] = [
@@ -848,6 +888,9 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
 function QuotesPage() {
   const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(quotes);
   const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(quotes[0]);
+  const [quoteLineRecords, setQuoteLineRecords] = useState<Record<string, QuoteLine[]>>({
+    [quotes[0].quote]: quoteLines,
+  });
   const [quoteSearchQuery, setQuoteSearchQuery] = useState("");
   const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -919,9 +962,34 @@ function QuotesPage() {
   const startNewQuote = (client: Contact, staffMember: StaffMember) => {
     const newQuote = createNewQuoteRecord(quoteRecords, client.company, staffMember.name);
     setQuoteRecords([newQuote, ...quoteRecords]);
+    setQuoteLineRecords((currentLines) => ({
+      ...currentLines,
+      [newQuote.quote]: [],
+    }));
     setCurrentQuote(newQuote);
     setQuoteSearchQuery("");
     closeNewQuotePicker();
+  };
+
+  const addQuoteLine = (line: QuoteLine) => {
+    const existingLines = quoteLineRecords[currentQuote.quote] ?? [];
+    const nextLines = [...existingLines, line];
+    const nextTotal = calculateQuoteTotal(nextLines);
+    const nextQuote = {
+      ...currentQuote,
+      lines: nextLines.length,
+      total: nextTotal,
+      margin: nextTotal > 0 ? "30%" : "0%",
+    };
+
+    setQuoteLineRecords({
+      ...quoteLineRecords,
+      [currentQuote.quote]: nextLines,
+    });
+    setCurrentQuote(nextQuote);
+    setQuoteRecords((currentQuotes) =>
+      currentQuotes.map((quote) => (quote.quote === nextQuote.quote ? nextQuote : quote)),
+    );
   };
 
   return (
@@ -1033,7 +1101,12 @@ function QuotesPage() {
           ])}
         />
       </PagePanel>
-      <QuoteWorkbench compact lines={currentQuote.lines === 0 ? [] : quoteLines} quote={currentQuote} />
+      <QuoteWorkbench
+        compact
+        lines={quoteLineRecords[currentQuote.quote] ?? []}
+        onAddLine={addQuoteLine}
+        quote={currentQuote}
+      />
     </section>
   );
 }
@@ -1485,17 +1558,47 @@ function ContactNotesPanel({
 function QuoteWorkbench({
   compact = false,
   lines = quoteLines,
+  onAddLine,
   quote = quotes[0],
 }: {
   compact?: boolean;
   lines?: QuoteLine[];
+  onAddLine?: (line: QuoteLine) => void;
   quote?: QuoteRecord;
 }) {
+  const [isLineFormOpen, setIsLineFormOpen] = useState(false);
+  const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
   const subtotal = quote.total / 1.1;
+  const draftLine = createQuoteLineFromDraft(lineDraft);
+  const canAddLine = Boolean(lineDraft.part.trim() && lineDraft.material.trim() && lineDraft.thickness.trim() && draftLine.qty > 0);
+
+  const updateLineDraft = (field: keyof QuoteLineDraft, value: string) => {
+    setLineDraft((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const openLineForm = () => {
+    setLineDraft(createBlankQuoteLineDraft());
+    setIsLineFormOpen(true);
+  };
+
+  const closeLineForm = () => {
+    setIsLineFormOpen(false);
+    setLineDraft(createBlankQuoteLineDraft());
+  };
+
+  const addLine = () => {
+    if (!canAddLine) return;
+
+    onAddLine?.(draftLine);
+    closeLineForm();
+  };
 
   return (
     <article className={compact ? "quote-panel compact" : "quote-panel"}>
-      <PanelHeading eyebrow="Live estimate" title={`Quote ${quote.quote}`} actionLabel="Add Line" />
+      <PanelHeading eyebrow="Live estimate" title={`Quote ${quote.quote}`} actionLabel="Add Line" onAction={openLineForm} />
       <div className="quote-summary">
         <div>
           <span>Client</span>
@@ -1514,6 +1617,83 @@ function QuoteWorkbench({
           <strong>{currency.format(quote.total)}</strong>
         </div>
       </div>
+      {isLineFormOpen && (
+        <section className="quote-line-form" aria-label="Add quote line">
+          <div className="quote-line-form-heading">
+            <div>
+              <p className="eyebrow">Line Item</p>
+              <h3>Add Part</h3>
+            </div>
+            <div className="quote-picker-actions">
+              <button className="secondary-action" onClick={closeLineForm} type="button">
+                Cancel
+              </button>
+              <button className="primary-action" disabled={!canAddLine} onClick={addLine} type="button">
+                <Plus size={16} />
+                <span>Add</span>
+              </button>
+            </div>
+          </div>
+          <div className="quote-line-form-grid">
+            <label className="field quote-line-part">
+              <span>Part description</span>
+              <input
+                onChange={(event) => updateLineDraft("part", event.target.value)}
+                placeholder="PLATE 200 x 100"
+                value={lineDraft.part}
+              />
+            </label>
+            <label className="field">
+              <span>Material</span>
+              <input
+                onChange={(event) => updateLineDraft("material", event.target.value)}
+                value={lineDraft.material}
+              />
+            </label>
+            <label className="field">
+              <span>Thickness</span>
+              <input
+                onChange={(event) => updateLineDraft("thickness", event.target.value)}
+                placeholder="10 mm"
+                value={lineDraft.thickness}
+              />
+            </label>
+            <label className="field">
+              <span>Qty</span>
+              <input
+                min="1"
+                onChange={(event) => updateLineDraft("qty", event.target.value)}
+                type="number"
+                value={lineDraft.qty}
+              />
+            </label>
+            <label className="field">
+              <span>Cut</span>
+              <input
+                min="0"
+                onChange={(event) => updateLineDraft("cut", event.target.value)}
+                step="0.01"
+                type="number"
+                value={lineDraft.cut}
+              />
+            </label>
+            <label className="field">
+              <span>Pierce</span>
+              <input
+                min="0"
+                onChange={(event) => updateLineDraft("pierce", event.target.value)}
+                step="0.01"
+                type="number"
+                value={lineDraft.pierce}
+              />
+            </label>
+            <div className="quote-line-total">
+              <span>Line total</span>
+              <strong>{currency.format(draftLine.total)}</strong>
+            </div>
+          </div>
+        </section>
+      )}
       <DataTable
         columns={["Part", "Material", "Qty", "Cut", "Pierce", "Total"]}
         emptyMessage="No line items yet."

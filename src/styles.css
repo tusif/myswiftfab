@@ -434,6 +434,48 @@ h3 {
   font-size: 13px;
 }
 
+.quote-line-form {
+  background: #fbfcfd;
+  border-bottom: 1px solid #e3e7ec;
+}
+
+.quote-line-form-heading {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px 18px 0;
+}
+
+.quote-line-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1.6fr) repeat(5, minmax(92px, 1fr)) minmax(110px, 0.8fr);
+  padding: 14px 18px 18px;
+}
+
+.quote-line-total {
+  align-self: end;
+  background: #fff;
+  border: 1px solid #d7dce2;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  min-height: 65px;
+  padding: 9px 12px;
+}
+
+.quote-line-total span {
+  color: #68717d;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.quote-line-total strong {
+  color: #1f252e;
+  font-size: 15px;
+}
+
 .client-picker-list {
   display: grid;
 }
@@ -1062,6 +1104,7 @@ td {
 
   .quote-summary,
   .customer-stat-grid,
+  .quote-line-form-grid,
   .form-grid.two,
   .form-grid.three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1096,6 +1139,16 @@ td {
 
   .workspace {
     padding: 18px;
+  }
+
+  .quote-line-form-heading,
+  .quote-picker-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quote-line-form-grid {
+    grid-template-columns: 1fr;
   }
 
   .topbar,
