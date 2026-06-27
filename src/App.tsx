@@ -2217,21 +2217,18 @@ function QuoteWorkbench({
                 <table className="qf-others-tbl">
                   <thead>
                     <tr>
+                      <th><button className="qf-others-add-btn" onClick={addOtherRow} type="button">+ Add</button></th>
                       <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="qf-others-add-row">
-                      <td colSpan={11}>
-                        <button className="qf-others-add-btn" onClick={addOtherRow} type="button">+ Add</button>
-                      </td>
-                    </tr>
                     {currentOthers.map((o) => {
                       const salesEach = o.cost * (1 + o.markupPct / 100);
                       const costTotal = o.cost * o.qty;
                       const amountTotal = salesEach * o.qty;
                       return (
                         <tr key={o.id}>
+                          <td></td>
                           <td className="qf-others-cat-cell">
                             <input className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category} />
                             <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
@@ -2250,15 +2247,15 @@ function QuoteWorkbench({
                       );
                     })}
                     {currentOthers.length === 0 && (
-                      <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add</td></tr>
+                      <tr className="qf-others-placeholder"><td colSpan={12}>No others for this line — click + Add</td></tr>
                     )}
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
+                      <td colSpan={6} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
                       <td style={{ fontWeight: 700 }}>{currency.format(othersCostTotal)}</td>
                       <td style={{ fontWeight: 700 }}>{currency.format(othersAmountTotal)}</td>
-                      <td colSpan={4}></td>
+                      <td colSpan={5}></td>
                     </tr>
                   </tfoot>
                 </table>
