@@ -1715,7 +1715,7 @@ td {
 /* Header */
 .qf-header { border: 1px solid #c0b8b0; border-bottom: none; font-size: 11px; }
 
-.qf-hrow { display: grid; grid-template-columns: 1.4fr 1.2fr 0.9fr 0.9fr 0.7fr 1.4fr; }
+.qf-hrow { display: grid; grid-template-columns: 0.9fr 0.9fr 0.6fr 0.7fr 0.5fr 1.4fr; }
 
 .qf-hrow-labels { background: #eee8dd; }
 
