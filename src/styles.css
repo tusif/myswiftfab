@@ -357,7 +357,6 @@ h3 {
 .quote-selected-line span,
 .quote-line-metrics span,
 .quote-line-detail-grid span,
-.quote-others-grid .quote-line-total span,
 .quote-footer-grid span {
   color: #4b1f60;
   font-size: 12px;
@@ -451,8 +450,7 @@ h3 {
 }
 
 .quote-line-metrics,
-.quote-line-detail-grid,
-.quote-others-grid {
+.quote-line-detail-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
@@ -471,14 +469,109 @@ h3 {
 }
 
 .quote-line-detail-grid,
-.quote-others-grid {
+.quote-others-table-panel {
   grid-column: 2;
 }
 
-.quote-others-grid {
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 12px;
+.quote-others-table-panel {
+  background: #fff;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 10px;
+}
+
+.quote-others-table-panel table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 980px;
+  width: 100%;
+}
+
+.quote-others-table-panel th {
+  background: #4b1f60;
+  border-right: 1px solid #d8d1de;
+  color: #fff;
+  font-size: 13px;
+  height: 36px;
+  text-align: center;
+}
+
+.quote-others-table-panel th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.quote-others-table-panel th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.quote-others-table-panel td {
+  border-bottom: 1px solid #b7b3ad;
+  border-right: 1px solid #8f8a82;
+  color: #202024;
+  font-weight: 800;
+  height: 46px;
+  padding: 0;
+  text-align: center;
+}
+
+.quote-others-table-panel td:first-child {
+  min-width: 220px;
+}
+
+.quote-others-table-panel input {
+  background: transparent;
+  border: 0;
+  color: #202024;
+  font: inherit;
+  min-height: 34px;
+  padding: 0 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.quote-others-table-panel input::placeholder,
+.quote-others-placeholder {
+  color: #a8a4a0;
+  text-transform: uppercase;
+}
+
+.quote-others-table-panel .muted-input {
+  color: #a8a4a0;
+  display: block;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.quote-others-placeholder td {
+  color: #a8a4a0;
+  font-weight: 800;
+  height: 40px;
+  text-transform: uppercase;
+}
+
+.quote-others-placeholder td:first-child {
+  display: grid;
+  gap: 10px;
+  padding: 8px;
+}
+
+.quote-others-table-panel tfoot td {
+  background: #4b1f60;
+  border-color: #d8d1de;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  height: 38px;
+  padding: 0 8px;
+  text-align: right;
+}
+
+.quote-others-table-panel tfoot td:first-child {
+  border-bottom-left-radius: 8px;
+}
+
+.quote-others-table-panel tfoot td:last-child {
+  border-bottom-right-radius: 8px;
 }
 
 .quote-line-list-heading {
@@ -1472,7 +1565,7 @@ td {
   }
 
   .quote-line-detail-grid,
-  .quote-others-grid,
+  .quote-others-table-panel,
   .quote-selected-line {
     grid-column: auto;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1526,7 +1619,7 @@ td {
   .quote-selected-line,
   .quote-line-metrics,
   .quote-line-detail-grid,
-  .quote-others-grid,
+  .quote-others-table-panel,
   .quote-footer-grid {
     grid-template-columns: 1fr;
   }

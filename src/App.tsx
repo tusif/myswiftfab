@@ -1943,13 +1943,23 @@ function QuoteWorkbench({
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
+  const [otherCategory, setOtherCategory] = useState("BENDING");
+  const [otherDescription, setOtherDescription] = useState("");
+  const [otherQty, setOtherQty] = useState("1");
   const [subcontractCost, setSubcontractCost] = useState("0");
   const [markupPercent, setMarkupPercent] = useState("20");
+  const [otherSupplier, setOtherSupplier] = useState("");
+  const [otherStaff, setOtherStaff] = useState("");
+  const [otherReference, setOtherReference] = useState("");
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
   const selectedLine = lines[selectedLineIndex] ?? null;
   const gst = quote.total * 0.1;
   const totalIncGst = quote.total + gst;
-  const subcontractTotal = (Number(subcontractCost) || 0) * (1 + (Number(markupPercent) || 0) / 100);
+  const otherQtyNumber = Number(otherQty) || 0;
+  const otherCostNumber = Number(subcontractCost) || 0;
+  const otherSalesEach = otherCostNumber * (1 + (Number(markupPercent) || 0) / 100);
+  const otherCostTotal = otherCostNumber * otherQtyNumber;
+  const subcontractTotal = otherSalesEach * otherQtyNumber;
   const draftLine = createQuoteLineFromDraft(lineDraft);
   const canAddLine = Boolean(lineDraft.part.trim() && lineDraft.material.trim() && lineDraft.thickness.trim() && draftLine.qty > 0);
 
@@ -2102,19 +2112,63 @@ function QuoteWorkbench({
         )}
 
         {detailTab === "others" && (
-          <div className="quote-others-grid">
-            <label className="field">
-              <span>Subcontractor Charge</span>
-              <input onChange={(event) => setSubcontractCost(event.target.value)} type="number" value={subcontractCost} />
-            </label>
-            <label className="field">
-              <span>Markup %</span>
-              <input onChange={(event) => setMarkupPercent(event.target.value)} type="number" value={markupPercent} />
-            </label>
-            <div className="quote-line-total">
-              <span>Other Total</span>
-              <strong>{currency.format(subcontractTotal)}</strong>
-            </div>
+          <div className="quote-others-table-panel">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Qty</th>
+                  <th>Cost</th>
+                  <th>%age</th>
+                  <th>Sales</th>
+                  <th>Cost</th>
+                  <th>Amount</th>
+                  <th>Supplier</th>
+                  <th>Staff</th>
+                  <th>Ref.</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <input aria-label="Other category" onChange={(event) => setOtherCategory(event.target.value)} value={otherCategory} />
+                    <input aria-label="Other description" className="muted-input" onChange={(event) => setOtherDescription(event.target.value)} placeholder="Description" value={otherDescription} />
+                  </td>
+                  <td><input aria-label="Other quantity" onChange={(event) => setOtherQty(event.target.value)} type="number" value={otherQty} /></td>
+                  <td><input aria-label="Other cost each" onChange={(event) => setSubcontractCost(event.target.value)} type="number" value={subcontractCost} /></td>
+                  <td><input aria-label="Other markup percent" onChange={(event) => setMarkupPercent(event.target.value)} type="number" value={markupPercent} /></td>
+                  <td>{otherSalesEach.toFixed(2)}</td>
+                  <td>{otherCostTotal.toFixed(2)}</td>
+                  <td>{subcontractTotal.toFixed(2)}</td>
+                  <td><input aria-label="Other supplier" onChange={(event) => setOtherSupplier(event.target.value)} placeholder="Name" value={otherSupplier} /></td>
+                  <td><input aria-label="Other staff" onChange={(event) => setOtherStaff(event.target.value)} placeholder="Staff" value={otherStaff} /></td>
+                  <td><input aria-label="Other reference" onChange={(event) => setOtherReference(event.target.value)} placeholder="Reference" value={otherReference} /></td>
+                </tr>
+                <tr className="quote-others-placeholder">
+                  <td>
+                    <span>Category</span>
+                    <span>Description</span>
+                  </td>
+                  <td>Qty</td>
+                  <td>Cost</td>
+                  <td>%age</td>
+                  <td>Sales</td>
+                  <td>Cost</td>
+                  <td>Sales</td>
+                  <td>Name</td>
+                  <td>Staff</td>
+                  <td>Reference</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={5}>Total:</td>
+                  <td>{currency.format(otherCostTotal)}</td>
+                  <td>{currency.format(subcontractTotal)}</td>
+                  <td colSpan={3}></td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
 
