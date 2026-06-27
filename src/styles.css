@@ -251,6 +251,9 @@ h3 {
   grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
 }
 
+.quote-back-bar { align-items: center; display: flex; gap: 14px; padding: 10px 0 4px; }
+.quote-back-ref { color: #333; font-weight: 600; }
+
 .quote-panel,
 .page-panel,
 .activity-panel,
