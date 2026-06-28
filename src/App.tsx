@@ -2009,6 +2009,17 @@ function QuoteWorkbench({
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
+  type HoleRow = { id: string; holeType: string; odid: string; nos: string; dia: string; side1: string; side2: string; len: string; total: string; weight: string; };
+  const [holeRows, setHoleRows] = useState<HoleRow[]>([]);
+  function addHoleRow() {
+    setHoleRows(r => [...r, { id: crypto.randomUUID(), holeType: "LASER CUT HOLES", odid: "", nos: "", dia: "", side1: "", side2: "", len: "", total: "", weight: "" }]);
+  }
+  function updateHoleRow(id: string, field: keyof HoleRow, value: string) {
+    setHoleRows(r => r.map(h => h.id === id ? { ...h, [field]: value } : h));
+  }
+  function removeHoleRow(id: string) {
+    setHoleRows(r => r.filter(h => h.id !== id));
+  }
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
   const selectedLine = lines[selectedLineIndex] ?? null;
@@ -2131,6 +2142,7 @@ function QuoteWorkbench({
           )}
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
           <button className="primary-action" onClick={addOtherRow} type="button">+ Add Category</button>
+          <button className="primary-action" onClick={addHoleRow} type="button">+ Add Hole</button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
@@ -2360,18 +2372,23 @@ function QuoteWorkbench({
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>LASER CUT HOLES</td><td></td>
-                  <td><input className="qf-num-input" defaultValue="4" /></td>
-                  <td><input className="qf-num-input" defaultValue="50" /></td>
-                  <td></td><td></td><td></td>
-                  <td>628</td><td></td>
-                  <td className="qf-del-cell">✕</td>
-                </tr>
-                <tr>
-                  <td colSpan={9} className="qf-empty-row"></td>
-                  <td className="qf-del-cell">✕</td>
-                </tr>
+                {holeRows.map(h => (
+                  <tr key={h.id}>
+                    <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeType} onChange={e => updateHoleRow(h.id, "holeType", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.odid} onChange={e => updateHoleRow(h.id, "odid", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.nos} onChange={e => updateHoleRow(h.id, "nos", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.dia} onChange={e => updateHoleRow(h.id, "dia", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.side1} onChange={e => updateHoleRow(h.id, "side1", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.side2} onChange={e => updateHoleRow(h.id, "side2", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.total} onChange={e => updateHoleRow(h.id, "total", e.target.value)} /></td>
+                    <td><input className="qf-num-input" value={h.weight} onChange={e => updateHoleRow(h.id, "weight", e.target.value)} /></td>
+                    <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
+                  </tr>
+                ))}
+                {holeRows.length === 0 && (
+                  <tr><td colSpan={10} style={{ color: "#bbb", fontStyle: "italic", padding: "8px", textAlign: "center" }}>No holes — click + Add Hole above</td></tr>
+                )}
               </tbody>
             </table>
           </div>
