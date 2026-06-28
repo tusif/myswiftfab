@@ -2009,16 +2009,28 @@ function QuoteWorkbench({
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
-  type HoleRow = { id: string; holeType: string; odid: string; nos: string; dia: string; side1: string; side2: string; len: string; total: string; weight: string; };
+  const HOLE_TYPES = ["Laser Cut Holes", "Drilled Holes", "Slots", "Len"];
+  type HoleRow = { id: string; holeType: string; qty: string; dia: string; side1: string; side2: string; len: string; holeDesc: string; weight: string; };
   const [holeRows, setHoleRows] = useState<HoleRow[]>([]);
   function addHoleRow() {
-    setHoleRows(r => [...r, { id: crypto.randomUUID(), holeType: "LASER CUT HOLES", odid: "", nos: "", dia: "", side1: "", side2: "", len: "", total: "", weight: "" }]);
+    setHoleRows(r => [...r, { id: crypto.randomUUID(), holeType: "Laser Cut Holes", qty: "", dia: "", side1: "", side2: "", len: "", holeDesc: "", weight: "" }]);
   }
   function updateHoleRow(id: string, field: keyof HoleRow, value: string) {
     setHoleRows(r => r.map(h => h.id === id ? { ...h, [field]: value } : h));
   }
   function removeHoleRow(id: string) {
     setHoleRows(r => r.filter(h => h.id !== id));
+  }
+  function calcPerimeter(h: HoleRow): string {
+    const qty = Number(h.qty) || 0;
+    const dia = Number(h.dia) || 0;
+    const s1 = Number(h.side1) || 0;
+    const s2 = Number(h.side2) || 0;
+    const len = Number(h.len) || 0;
+    if (h.holeType === "Laser Cut Holes" || h.holeType === "Drilled Holes") return (Math.PI * dia * qty).toFixed(2);
+    if (h.holeType === "Slots") return ((s1 * 2 + s2 * 2) * qty).toFixed(2);
+    if (h.holeType === "Len") return String(len);
+    return "—";
   }
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
@@ -2367,25 +2379,33 @@ function QuoteWorkbench({
             <table className="qf-calc-table">
               <thead>
                 <tr>
-                  <th>Hole Type</th><th>O/D-ID</th><th>Nos</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Total</th><th>Weight</th>
-                  <th></th>
+                  <th>Hole Type</th><th>Qty</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Perimeter</th><th>Hole Desc</th><th>Weight</th><th></th>
                 </tr>
               </thead>
               <tbody>
-                {holeRows.map(h => (
-                  <tr key={h.id}>
-                    <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeType} onChange={e => updateHoleRow(h.id, "holeType", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.odid} onChange={e => updateHoleRow(h.id, "odid", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.nos} onChange={e => updateHoleRow(h.id, "nos", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.dia} onChange={e => updateHoleRow(h.id, "dia", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.side1} onChange={e => updateHoleRow(h.id, "side1", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.side2} onChange={e => updateHoleRow(h.id, "side2", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.total} onChange={e => updateHoleRow(h.id, "total", e.target.value)} /></td>
-                    <td><input className="qf-num-input" value={h.weight} onChange={e => updateHoleRow(h.id, "weight", e.target.value)} /></td>
-                    <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
-                  </tr>
-                ))}
+                {holeRows.map(h => {
+                  const isSlot = h.holeType === "Slots";
+                  const isLen = h.holeType === "Len";
+                  const needsDia = h.holeType === "Laser Cut Holes" || h.holeType === "Drilled Holes";
+                  return (
+                    <tr key={h.id}>
+                      <td>
+                        <select style={{ width: "100%", border: "none", background: "transparent", fontWeight: 600 }} value={h.holeType} onChange={e => updateHoleRow(h.id, "holeType", e.target.value)}>
+                          {HOLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </td>
+                      <td><input className="qf-num-input" value={h.qty} onChange={e => updateHoleRow(h.id, "qty", e.target.value)} placeholder="Qty" /></td>
+                      <td><input className="qf-num-input" value={h.dia} onChange={e => updateHoleRow(h.id, "dia", e.target.value)} disabled={!needsDia} style={{ opacity: needsDia ? 1 : 0.3 }} placeholder="Dia" /></td>
+                      <td><input className="qf-num-input" value={h.side1} onChange={e => updateHoleRow(h.id, "side1", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S1" /></td>
+                      <td><input className="qf-num-input" value={h.side2} onChange={e => updateHoleRow(h.id, "side2", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S2" /></td>
+                      <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} disabled={!isLen} style={{ opacity: isLen ? 1 : 0.3 }} placeholder="Len" /></td>
+                      <td style={{ fontWeight: 700, textAlign: "center" }}>{calcPerimeter(h)}</td>
+                      <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeDesc} onChange={e => updateHoleRow(h.id, "holeDesc", e.target.value)} placeholder="Description" /></td>
+                      <td><input className="qf-num-input" value={h.weight} onChange={e => updateHoleRow(h.id, "weight", e.target.value)} placeholder="kg" /></td>
+                      <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
+                    </tr>
+                  );
+                })}
                 {holeRows.length === 0 && (
                   <tr><td colSpan={10} style={{ color: "#bbb", fontStyle: "italic", padding: "8px", textAlign: "center" }}>No holes — click + Add Hole above</td></tr>
                 )}
