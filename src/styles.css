@@ -1924,18 +1924,18 @@ td {
   min-width: 55px;
 }
 
-.qf-summary-cells span { font-size: 8px; color: #666; text-transform: uppercase; }
-.qf-summary-cells strong { font-size: 11px; font-weight: 700; }
+.qf-summary-cells span { color: #666; text-transform: uppercase; }
+.qf-summary-cells strong { font-weight: 700; }
 
-.qf-summary-desc { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.qf-summary-desc input { border: 1px solid #ccc; font-size: 11px; font-weight: 700; padding: 2px 5px; width: 100%; background: #fff; }
+.qf-summary-desc { display: flex; flex-direction: column; gap: 2px; width: 180px; flex-shrink: 0; }
+.qf-summary-desc input { border: 1px solid #ccc; font-weight: 700; padding: 2px 5px; width: 100%; background: #fff; }
 
 .qf-summary-qty { width: 44px; }
 .qf-summary-qty input { width: 40px; }
 
 .qf-summary-total { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.qf-summary-total span { font-size: 10px; color: #666; }
-.qf-summary-total strong { font-size: 13px; font-weight: 800; }
+.qf-summary-total span { color: #666; }
+.qf-summary-total strong { font-weight: 800; }
 
 /* Lines heading */
 .qf-lines-heading {
