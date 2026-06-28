@@ -2014,8 +2014,10 @@ function QuoteWorkbench({
     { value: "J", label: "J — Job" },
     { value: "H", label: "H — On Hold" },
     { value: "N/A", label: "N/A — Not Applicable" },
+    { value: "C", label: "C — Complete" },
+    { value: "INV", label: "INV — Invoiced" },
   ];
-  const lineStatusColor: Record<string, string> = { Q: "#1a6aaa", J: "#2a7a2a", H: "#b87a00", "N/A": "#888" };
+  const lineStatusColor: Record<string, string> = { Q: "#1a6aaa", J: "#2a7a2a", H: "#b87a00", "N/A": "#888", C: "#4a4a9a", INV: "#153f4d" };
   const [lineStatuses, setLineStatuses] = useState<Record<number, string>>({});
   const HOLE_TYPES = ["Laser Cut Holes", "Drilled Holes", "Slots", "Len"];
   type HoleRow = { id: string; holeType: string; qty: string; dia: string; side1: string; side2: string; len: string; holeDesc: string; weight: string; };
