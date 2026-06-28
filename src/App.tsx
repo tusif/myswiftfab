@@ -2487,10 +2487,6 @@ function QuoteWorkbench({
               <div className="qf-label" style={{ padding: "3px 6px" }}>Delivery Notes :</div>
               <textarea placeholder="Quote Delivery" style={{ width: "100%", minHeight: 40, border: "none", background: "transparent", fontSize: 10, padding: "3px 6px" }} />
             </div>
-            <div style={{ flex: 1 }}>
-              <div className="qf-section-head">QUOTE DELIVERY</div>
-              <div className="qf-section-head" style={{ marginTop: 2 }}>OTHER NOTE</div>
-            </div>
           </div>
           <table className="qf-summary-table">
             <thead>
