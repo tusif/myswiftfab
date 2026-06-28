@@ -1087,6 +1087,16 @@ function QuotesPage() {
     );
   };
 
+  const updateQuoteLine = (index: number, line: QuoteLine) => {
+    const existingLines = quoteLineRecords[currentQuote.quote] ?? [];
+    const nextLines = existingLines.map((l, i) => i === index ? line : l);
+    const nextTotal = calculateQuoteTotal(nextLines);
+    const nextQuote = { ...currentQuote, total: nextTotal, margin: nextTotal > 0 ? "30%" : "0%" };
+    setQuoteLineRecords({ ...quoteLineRecords, [currentQuote.quote]: nextLines });
+    setCurrentQuote(nextQuote);
+    setQuoteRecords((qs) => qs.map((q) => (q.quote === nextQuote.quote ? nextQuote : q)));
+  };
+
   const saveQuote = (lineOthers: Record<number, OtherLineItem[]>) => {
     localStorage.setItem(LS_QUOTES, JSON.stringify(quoteRecords));
     localStorage.setItem(LS_LINES, JSON.stringify(quoteLineRecords));
@@ -1098,6 +1108,7 @@ function QuotesPage() {
       <QuoteWorkbench
         lines={quoteLineRecords[currentQuote.quote] ?? []}
         onAddLine={addQuoteLine}
+        onUpdateLine={updateQuoteLine}
         quote={currentQuote}
         onBack={() => setView("list")}
         onNewQuote={openNewQuoteClientPicker}
@@ -1971,6 +1982,7 @@ function QuoteWorkbench({
   compact = false,
   lines = quoteLines,
   onAddLine,
+  onUpdateLine,
   onBack,
   onNewQuote,
   onSave,
@@ -1980,6 +1992,7 @@ function QuoteWorkbench({
   compact?: boolean;
   lines?: QuoteLine[];
   onAddLine?: (line: QuoteLine) => void;
+  onUpdateLine?: (index: number, line: QuoteLine) => void;
   onBack?: () => void;
   onNewQuote?: () => void;
   onSave?: (lineOthers: Record<number, OtherLineItem[]>) => void;
@@ -1987,6 +2000,7 @@ function QuoteWorkbench({
   quote?: QuoteRecord;
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [detailTab, setDetailTab] = useState<"detail" | "others" | "holes" | "advanced">("detail");
@@ -2042,6 +2056,26 @@ function QuoteWorkbench({
 
   const openLineForm = () => {
     setLineDraft(createBlankQuoteLineDraft());
+    setEditingLineIndex(null);
+    setIsLineFormOpen(true);
+  };
+
+  const openEditLineForm = (index: number) => {
+    const line = lines[index];
+    if (!line) return;
+    setLineDraft({
+      part: line.part,
+      materialRateId: "",
+      materialType: line.materialType ?? "",
+      material: line.material,
+      thickness: line.thickness,
+      feed: String(line.feed ?? ""),
+      costPerM2: String(line.costPerM2 ?? ""),
+      qty: String(line.qty),
+      cut: String(line.cut),
+      pierce: String(line.pierce),
+    });
+    setEditingLineIndex(index);
     setIsLineFormOpen(true);
   };
 
@@ -2064,14 +2098,18 @@ function QuoteWorkbench({
 
   const closeLineForm = () => {
     setIsLineFormOpen(false);
+    setEditingLineIndex(null);
     setLineDraft(createBlankQuoteLineDraft());
   };
 
   const addLine = () => {
     if (!canAddLine) return;
-
-    onAddLine?.(draftLine);
-    setSelectedLineIndex(lines.length);
+    if (editingLineIndex !== null) {
+      onUpdateLine?.(editingLineIndex, draftLine);
+    } else {
+      onAddLine?.(draftLine);
+      setSelectedLineIndex(lines.length);
+    }
     closeLineForm();
   };
 
@@ -2369,11 +2407,11 @@ function QuoteWorkbench({
       {isLineFormOpen && (
         <section className="quote-line-form" aria-label="Add quote line">
           <div className="quote-line-form-heading">
-            <div><p className="eyebrow">Line Item</p><h3>Add Part</h3></div>
+            <div><p className="eyebrow">Line Item</p><h3>{editingLineIndex !== null ? "Edit Part" : "Add Part"}</h3></div>
             <div className="quote-picker-actions">
               <button className="secondary-action" onClick={closeLineForm} type="button">Cancel</button>
               <button className="primary-action" disabled={!canAddLine} onClick={addLine} type="button">
-                <Plus size={16} /><span>Add</span>
+                <Plus size={16} /><span>{editingLineIndex !== null ? "Save Changes" : "Add"}</span>
               </button>
             </div>
           </div>
@@ -2458,7 +2496,11 @@ function QuoteWorkbench({
                 <td>{detailTab === "others" ? "OTHERS" : ""}</td>
                 <td>{currency.format(line.total)}</td>
                 <td className="qf-status-complete">COMPLETE</td>
-                <td className="qf-del-cell">✕</td>
+                <td className="qf-del-cell">
+                  <button className="qf-edit-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
+                  <span style={{ margin: "0 2px", color: "#ccc" }}>|</span>
+                  <span className="qf-del-x">✕</span>
+                </td>
               </tr>
             ))}
             {lines.length === 0 && (

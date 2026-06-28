@@ -1987,6 +1987,9 @@ td {
 .qf-lines-tbl tbody tr:hover { background: #f0f0e8; cursor: pointer; }
 .qf-muted { color: #aaa !important; }
 .qf-status-complete { color: #2a7a2a; font-weight: 800; text-transform: uppercase; }
+.qf-edit-btn { background: none; border: none; color: #1a6aaa; cursor: pointer; font-size: 14px; padding: 0 2px; }
+.qf-edit-btn:hover { color: #f57c20; }
+.qf-del-x { color: #c0392b; cursor: pointer; font-size: 14px; }
 
 /* Footer */
 .qf-footer {
