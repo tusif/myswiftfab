@@ -2075,10 +2075,12 @@ function QuoteWorkbench({
     closeLineForm();
   };
 
+  const [quoteStatus, setQuoteStatus] = useState(quote.status);
   const statusColor: Record<string, string> = {
-    approved: "#3a7d2a", sent: "#b87a00", draft: "#555", review: "#a04000", inactive: "#999",
+    approved: "#3a7d2a", sent: "#b87a00", draft: "#555", review: "#a04000", inactive: "#999", lost: "#c0392b", pending: "#b87a00", internal: "#555",
   };
-  const statusBg = statusColor[quote.status.toLowerCase()] ?? "#555";
+  const statusBg = statusColor[quoteStatus.toLowerCase()] ?? "#555";
+  const statusOptions = ["Approved", "InActive", "Internal", "Lost", "Pending", "Sent", "Draft", "Review"];
 
   return (
     <article className="quote-panel">
@@ -2108,7 +2110,9 @@ function QuoteWorkbench({
           <div className="qf-col-head" style={{ gridColumn: "2" }}>STAFF</div>
           <div className="qf-col-head" style={{ gridColumn: "3 / span 2" }}>DELIVERY DETAILS</div>
           <div className="qf-col-head qf-status-col" style={{ gridColumn: "5" }}>
-            <span className="qf-status-badge" style={{ background: statusBg }}>{quote.status.toUpperCase()}</span>
+            <select className="qf-status-badge" style={{ background: statusBg, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }} value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)}>
+              {statusOptions.map(s => <option key={s} value={s} style={{ background: "#fff", color: "#333" }}>{s.toUpperCase()}</option>)}
+            </select>
             <span className="qf-label">QUOTE</span>
             <span className="qf-field-val">{quote.quote}</span>
             <span className="qf-label">DATE</span>
