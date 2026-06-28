@@ -2009,6 +2009,14 @@ function QuoteWorkbench({
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
+  const LINE_STATUSES = [
+    { value: "Q", label: "Q — Quote" },
+    { value: "J", label: "J — Job" },
+    { value: "H", label: "H — On Hold" },
+    { value: "N/A", label: "N/A — Not Applicable" },
+  ];
+  const lineStatusColor: Record<string, string> = { Q: "#1a6aaa", J: "#2a7a2a", H: "#b87a00", "N/A": "#888" };
+  const [lineStatuses, setLineStatuses] = useState<Record<number, string>>({});
   const HOLE_TYPES = ["Laser Cut Holes", "Drilled Holes", "Slots", "Len"];
   type HoleRow = { id: string; holeType: string; qty: string; dia: string; side1: string; side2: string; len: string; holeDesc: string; weight: string; };
   const [holeRows, setHoleRows] = useState<HoleRow[]>([]);
@@ -2532,7 +2540,19 @@ function QuoteWorkbench({
                 <td>{currency.format(line.cut)}</td>
                 <td>{detailTab === "others" ? "OTHERS" : ""}</td>
                 <td>{currency.format(line.total)}</td>
-                <td className="qf-status-complete">COMPLETE</td>
+                <td>{(() => {
+                  const s = lineStatuses[index] ?? "Q";
+                  return (
+                    <select
+                      value={s}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => { e.stopPropagation(); setLineStatuses(prev => ({ ...prev, [index]: e.target.value })); }}
+                      style={{ background: lineStatusColor[s] ?? "#555", color: "#fff", border: "none", borderRadius: 3, fontWeight: 700, padding: "2px 4px", cursor: "pointer", width: "100%" }}
+                    >
+                      {LINE_STATUSES.map(o => <option key={o.value} value={o.value} style={{ background: "#fff", color: "#333" }}>{o.value}</option>)}
+                    </select>
+                  );
+                })()}</td>
                 <td className="qf-del-cell">
                   <button className="qf-edit-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
                   <span style={{ margin: "0 2px", color: "#ccc" }}>|</span>
