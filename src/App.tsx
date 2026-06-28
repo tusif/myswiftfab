@@ -2450,54 +2450,53 @@ function QuoteWorkbench({
         </div>
       </div>
 
-      {/* ── Add line form ── */}
-      {isLineFormOpen && (
-        <section className="quote-line-form" aria-label="Add quote line">
-          <div className="quote-line-form-heading">
-            <div><p className="eyebrow">Line Item</p><h3>{editingLineIndex !== null ? "Edit Part" : "Add Part"}</h3></div>
-            <div className="quote-picker-actions">
-              <button className="secondary-action" onClick={closeLineForm} type="button">Cancel</button>
-              <button className="primary-action" disabled={!canAddLine} onClick={addLine} type="button">
-                <Plus size={16} /><span>{editingLineIndex !== null ? "Save Changes" : "Add"}</span>
-              </button>
-            </div>
+      {/* ── Add / Edit line drawer ── */}
+      {isLineFormOpen && <div className="qf-drawer-overlay" onClick={closeLineForm} />}
+      <aside className={`qf-drawer${isLineFormOpen ? " qf-drawer--open" : ""}`} aria-label="Line item form">
+        <div className="qf-drawer-header">
+          <div><p className="eyebrow">Line Item</p><h3>{editingLineIndex !== null ? "Edit Part" : "Add Part"}</h3></div>
+          <div className="quote-picker-actions">
+            <button className="secondary-action" onClick={closeLineForm} type="button">Cancel</button>
+            <button className="primary-action" disabled={!canAddLine} onClick={addLine} type="button">
+              <Plus size={16} /><span>{editingLineIndex !== null ? "Save" : "Add"}</span>
+            </button>
           </div>
-          <div className="quote-line-form-grid">
-            <label className="field quote-line-part">
-              <span>Part description</span>
-              <input onChange={(e) => updateLineDraft("part", e.target.value)} placeholder="PLATE 200 x 100" value={lineDraft.part} />
-            </label>
-            <label className="field">
-              <span>Material</span>
-              <select onChange={(e) => selectMaterialRate(e.target.value)} value={lineDraft.materialRateId}>
-                {materialRates.map((rate) => (
-                  <option key={rate.id} value={rate.id}>{getMaterialRateLabel(rate)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field"><span>Type</span><input readOnly value={lineDraft.materialType} /></label>
-            <label className="field"><span>Thickness</span><input readOnly value={lineDraft.thickness} /></label>
-            <label className="field"><span>Feed</span><input readOnly value={lineDraft.feed} /></label>
-            <label className="field">
-              <span>Qty</span>
-              <input min="1" onChange={(e) => updateLineDraft("qty", e.target.value)} type="number" value={lineDraft.qty} />
-            </label>
-            <label className="field">
-              <span>Cut Rate</span>
-              <input min="0" onChange={(e) => updateLineDraft("cut", e.target.value)} step="0.01" type="number" value={lineDraft.cut} />
-            </label>
-            <label className="field"><span>Cost per M2</span><input readOnly value={lineDraft.costPerM2} /></label>
-            <label className="field">
-              <span>Piercing Rate</span>
-              <input min="0" onChange={(e) => updateLineDraft("pierce", e.target.value)} step="0.01" type="number" value={lineDraft.pierce} />
-            </label>
-            <div className="quote-line-total">
-              <span>Line total</span>
-              <strong>{currency.format(draftLine.total)}</strong>
-            </div>
+        </div>
+        <div className="qf-drawer-body">
+          <label className="field">
+            <span>Part description</span>
+            <input onChange={(e) => updateLineDraft("part", e.target.value)} placeholder="PLATE 200 x 100" value={lineDraft.part} />
+          </label>
+          <label className="field">
+            <span>Material</span>
+            <select onChange={(e) => selectMaterialRate(e.target.value)} value={lineDraft.materialRateId}>
+              {materialRates.map((rate) => (
+                <option key={rate.id} value={rate.id}>{getMaterialRateLabel(rate)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field"><span>Type</span><input readOnly value={lineDraft.materialType} /></label>
+          <label className="field"><span>Thickness</span><input readOnly value={lineDraft.thickness} /></label>
+          <label className="field"><span>Feed</span><input readOnly value={lineDraft.feed} /></label>
+          <label className="field">
+            <span>Qty</span>
+            <input min="1" onChange={(e) => updateLineDraft("qty", e.target.value)} type="number" value={lineDraft.qty} />
+          </label>
+          <label className="field">
+            <span>Cut Rate</span>
+            <input min="0" onChange={(e) => updateLineDraft("cut", e.target.value)} step="0.01" type="number" value={lineDraft.cut} />
+          </label>
+          <label className="field"><span>Cost per M2</span><input readOnly value={lineDraft.costPerM2} /></label>
+          <label className="field">
+            <span>Piercing Rate</span>
+            <input min="0" onChange={(e) => updateLineDraft("pierce", e.target.value)} step="0.01" type="number" value={lineDraft.pierce} />
+          </label>
+          <div className="quote-line-total">
+            <span>Line total</span>
+            <strong>{currency.format(draftLine.total)}</strong>
           </div>
-        </section>
-      )}
+        </div>
+      </aside>
 
       {/* ── Line items table ── */}
       <div className="qf-lines-heading">

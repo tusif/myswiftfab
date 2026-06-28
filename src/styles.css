@@ -890,6 +890,45 @@ h3 {
   font-size: 13px;
 }
 
+/* ── Line item drawer ── */
+.qf-drawer-overlay {
+  background: rgb(0 0 0 / 30%);
+  bottom: 0; left: 0; right: 0; top: 0;
+  position: fixed;
+  z-index: 99;
+}
+.qf-drawer {
+  background: #fbfcfd;
+  border-left: 1px solid #dfe3e8;
+  bottom: 0;
+  box-shadow: -4px 0 24px rgb(0 0 0 / 15%);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  right: 0;
+  top: 0;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  width: 340px;
+  z-index: 100;
+}
+.qf-drawer--open { transform: translateX(0); }
+.qf-drawer-header {
+  align-items: center;
+  border-bottom: 1px solid #e3e7ec;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 16px 18px;
+}
+.qf-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 18px;
+}
+
 .quote-line-form {
   background: #fbfcfd;
   border-bottom: 1px solid #e3e7ec;
