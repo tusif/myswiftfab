@@ -124,6 +124,11 @@ type QuoteLine = {
   cut: number;
   pierce: number;
   total: number;
+  predecessor?: string;
+  side1?: number | null;
+  side2?: number | null;
+  od?: number | null;
+  id?: number | null;
 };
 
 type QuoteLineDraft = {
@@ -137,6 +142,11 @@ type QuoteLineDraft = {
   qty: string;
   cut: string;
   pierce: string;
+  predecessor: string;
+  side1: string;
+  side2: string;
+  od: string;
+  id: string;
 };
 
 type MaterialRateDraft = {
@@ -454,6 +464,8 @@ function createNewQuoteRecord(existingQuotes: QuoteRecord[], client: string, con
   };
 }
 
+const PREDECESSOR_TYPES = ["Plate", "Rectangle", "Square", "Ring", "Flange", "Disc", "Rect Flange"];
+
 function createBlankQuoteLineDraft(): QuoteLineDraft {
   const defaultMaterial = materialRates.find((rate) => rate.material === "M/S" && rate.thickness === 10) ?? materialRates[0];
 
@@ -468,6 +480,11 @@ function createBlankQuoteLineDraft(): QuoteLineDraft {
     qty: "1",
     cut: formatMaterialValue(defaultMaterial.cutRate),
     pierce: formatMaterialValue(defaultMaterial.piercingRate),
+    predecessor: "Plate",
+    side1: "",
+    side2: "",
+    od: "",
+    id: "",
   };
 }
 
@@ -489,7 +506,42 @@ function createQuoteLineFromDraft(draft: QuoteLineDraft): QuoteLine {
     cut,
     pierce,
     total: qty * (cut + pierce),
+    predecessor: draft.predecessor,
+    side1: draft.side1 ? Number(draft.side1) : null,
+    side2: draft.side2 ? Number(draft.side2) : null,
+    od: draft.od ? Number(draft.od) : null,
+    id: draft.id ? Number(draft.id) : null,
   };
+}
+
+type HoleRowForDesc = { holeType: string; qty: string; dia: string; side1: string; side2: string; holeDesc: string; };
+
+function calcPartDescription(line: QuoteLineDraft, holeRows: HoleRowForDesc[]): string {
+  const pred = line.predecessor;
+  const s1 = line.side1 ? Number(line.side1) : 0;
+  const s2 = line.side2 ? Number(line.side2) : 0;
+  const od = line.od ? Number(line.od) : 0;
+  const id = line.id ? Number(line.id) : 0;
+
+  const holeDesc = holeRows.map((h) => {
+    const qty = h.qty ? `${h.qty} x ` : "";
+    if (h.holeDesc) return h.holeDesc.toUpperCase();
+    if (h.holeType === "Laser Cut Holes") return `${qty}Ø${h.dia} LASER CUT HOLES`;
+    if (h.holeType === "Drilled Holes") return `${qty}Ø${h.dia} DRILLED HOLES`;
+    if (h.holeType === "Slots") return `${qty}SLOTS`;
+    return "";
+  }).filter(Boolean).join(", ");
+
+  const withHoles = holeRows.length > 0 ? ` WITH ${holeDesc || "HOLES"}` : "";
+
+  if (pred === "Plate") return `PLATE ${s1} x ${s2}${withHoles} TO EMAIL`;
+  if (pred === "Rectangle") return `RECTANGLE ${s1} x ${s2}`;
+  if (pred === "Square") return `SQUARE ${s1} x ${s1}`;
+  if (pred === "Ring") return `RING OD ${od} ID ${id}`;
+  if (pred === "Flange") return `FLANGE OD ${od} ID ${id}`;
+  if (pred === "Disc") return `DISC OD ${od}`;
+  if (pred === "Rect Flange") return `RECT FLANGE ${s1} x ${s2} OD ${od} ID ${id}`;
+  return "";
 }
 
 function calculateQuoteTotal(lines: QuoteLine[]) {
@@ -2107,6 +2159,11 @@ function QuoteWorkbench({
       qty: String(line.qty),
       cut: String(line.cut),
       pierce: String(line.pierce),
+      predecessor: line.predecessor ?? "Plate",
+      side1: String(line.side1 ?? ""),
+      side2: String(line.side2 ?? ""),
+      od: String(line.od ?? ""),
+      id: String(line.id ?? ""),
     });
     setEditingLineIndex(index);
     setIsLineFormOpen(true);
@@ -2146,6 +2203,50 @@ function QuoteWorkbench({
     closeLineForm();
   };
 
+  const applyDescription = () => {
+    const line = lines[selectedLineIndex];
+    if (!line) return;
+
+    const pred = line.predecessor ?? "Plate";
+
+    // Rectangle and Square cannot have holes
+    if ((pred === "Rectangle" || pred === "Square") && holeRows.length > 0) {
+      alert(`You can not have holes in ${pred}. Thank.`);
+      onUpdateLine?.(selectedLineIndex, { ...line, predecessor: "Plate" });
+      return;
+    }
+
+    // Ring and Disc: no extra perimeters check (simplified — just generate)
+
+    const draft: QuoteLineDraft = {
+      part: line.part,
+      materialRateId: "",
+      materialType: line.materialType ?? "",
+      material: line.material,
+      thickness: line.thickness,
+      feed: String(line.feed ?? ""),
+      costPerM2: String(line.costPerM2 ?? ""),
+      qty: String(line.qty),
+      cut: String(line.cut),
+      pierce: String(line.pierce),
+      predecessor: pred,
+      side1: String(line.side1 ?? ""),
+      side2: String(line.side2 ?? ""),
+      od: String(line.od ?? ""),
+      id: String(line.id ?? ""),
+    };
+
+    const generated = calcPartDescription(draft, holeRows);
+
+    if (line.part.trim().length <= 1) {
+      onUpdateLine?.(selectedLineIndex, { ...line, part: generated });
+    } else {
+      if (window.confirm("It will replace text you already have in description. Are you sure?")) {
+        onUpdateLine?.(selectedLineIndex, { ...line, part: generated });
+      }
+    }
+  };
+
   const [quoteStatus, setQuoteStatus] = useState(quote.status);
   const statusColor: Record<string, string> = {
     approved: "#3a7d2a", sent: "#b87a00", draft: "#555", review: "#a04000", inactive: "#999", lost: "#c0392b", pending: "#b87a00", internal: "#555",
@@ -2175,74 +2276,79 @@ function QuoteWorkbench({
 
       {/* ── Header strip ── */}
       <div className="qf-header">
+        <div className="qf-header-main">
+          {/* Row 1: column labels */}
+          <div className="qf-hrow qf-hrow-labels">
+            <div className="qf-col-head">CLIENT</div>
+            <div className="qf-col-head">STAFF</div>
+            <div className="qf-col-head" style={{ gridColumn: "3 / span 2" }}>DELIVERY DETAILS</div>
+          </div>
 
-        {/* Row 1: column labels */}
-        <div className="qf-hrow qf-hrow-labels">
-          <div className="qf-col-head" style={{ gridColumn: "1" }}>CLIENT</div>
-          <div className="qf-col-head" style={{ gridColumn: "2" }}>STAFF</div>
-          <div className="qf-col-head" style={{ gridColumn: "3 / span 2" }}>DELIVERY DETAILS</div>
-          <div className="qf-col-head qf-status-col" style={{ gridColumn: "5" }}>
-            <select className="qf-status-badge" style={{ background: statusBg, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }} value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)}>
-              {statusOptions.map(s => <option key={s} value={s} style={{ background: "#fff", color: "#333" }}>{s.toUpperCase()}</option>)}
-            </select>
-            <span className="qf-label">QUOTE</span>
-            <span className="qf-field-val">{quote.quote}</span>
-            <span className="qf-label">DATE</span>
-            <span className="qf-field-val">{quote.date ?? "—"}</span>
-            <span className="qf-label" style={{ marginLeft: 8 }}>SALES STAFF</span>
-            <span className="qf-field-val">{quote.contact}</span>
+          {/* Row 2: client data */}
+          <div className="qf-hrow qf-hrow-data">
+            {/* Client Company */}
+            <div className="qf-hcell">
+              <select aria-label="Client Company" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
+                {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
+                  <option key={c.id} value={c.company}>{c.company}</option>
+                ))}
+              </select>
+              <span className="qf-subval">{selectedClient.billingAddress?.split(",")[0] ?? ""}</span>
+              <span className="qf-subval">{selectedClient.billingAddress?.split(",").slice(1).join(",").trim() ?? ""}</span>
+            </div>
+            {/* Staff — name and job title only */}
+            <div className="qf-hcell">
+              <select aria-label="Staff" onChange={(e) => setSelectedStaffName(e.target.value)} value={selectedStaff?.name ?? ""}>
+                {selectedClient.staff.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+              <span className="qf-subval">{selectedStaff?.jobTitle ?? ""}</span>
+            </div>
+            {/* Delivery Street */}
+            <div className="qf-hcell">
+              <input placeholder="Street" className="qf-subinput" style={{ width: "75%" }} />
+              <input placeholder="PostCode" className="qf-subinput" style={{ width: "20%" }} />
+              <input placeholder="Suburb" className="qf-subinput" style={{ width: "60%" }} />
+              <input placeholder="State" className="qf-subinput" style={{ width: "30%" }} />
+            </div>
+            {/* Flags */}
+            <div className="qf-hcell qf-flags-cell">
+              <label><input type="checkbox" /> Pre Invoice</label>
+              <label><input type="checkbox" /> Cash Account</label>
+              <div className="qf-timestamp">
+                <span>Created</span>
+                <span>{quote.date ?? "—"}</span>
+              </div>
+              <div className="qf-timestamp">
+                <span>Sent</span>
+                <input type="checkbox" />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Row 2: client data */}
-        <div className="qf-hrow qf-hrow-data">
-          {/* Client Company */}
-          <div className="qf-hcell">
-            <select aria-label="Client Company" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
-              {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
-                <option key={c.id} value={c.company}>{c.company}</option>
-              ))}
-            </select>
-            <span className="qf-subval">{selectedClient.billingAddress?.split(",")[0] ?? ""}</span>
-            <span className="qf-subval">{selectedClient.billingAddress?.split(",").slice(1).join(",").trim() ?? ""}</span>
+        {/* Right panel: Status / Quote / Date / Sales Staff — vertical, right-aligned */}
+        <div className="qf-header-right">
+          <select
+            className="qf-status-badge"
+            style={{ background: statusBg, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", width: "100%" }}
+            value={quoteStatus}
+            onChange={(e) => setQuoteStatus(e.target.value)}
+          >
+            {statusOptions.map(s => <option key={s} value={s} style={{ background: "#fff", color: "#333" }}>{s.toUpperCase()}</option>)}
+          </select>
+          <div className="qf-right-row">
+            <span className="qf-label">QUOTE</span>
+            <span className="qf-field-val">{quote.quote}</span>
           </div>
-          {/* Staff */}
-          <div className="qf-hcell">
-            <select aria-label="Staff" onChange={(e) => setSelectedStaffName(e.target.value)} value={selectedStaff?.name ?? ""}>
-              {selectedClient.staff.map((s) => (
-                <option key={s.id} value={s.name}>{s.name}</option>
-              ))}
-            </select>
-            <span className="qf-subval">{selectedStaff?.jobTitle ?? ""}</span>
-            <span className="qf-subval">{selectedStaff?.direct ?? ""}</span>
-            <span className="qf-subval">{selectedStaff?.mobile ?? ""}</span>
-            <span className="qf-subval">{selectedStaff?.email ?? ""}</span>
+          <div className="qf-right-row">
+            <span className="qf-label">DATE</span>
+            <span className="qf-field-val">{quote.date ?? "—"}</span>
           </div>
-          {/* Delivery Street */}
-          <div className="qf-hcell">
-            <input placeholder="Street" className="qf-subinput" style={{ width: "75%" }} />
-            <input placeholder="PostCode" className="qf-subinput" style={{ width: "20%" }} />
-            <input placeholder="Suburb" className="qf-subinput" style={{ width: "60%" }} />
-            <input placeholder="State" className="qf-subinput" style={{ width: "30%" }} />
-          </div>
-          {/* Flags */}
-          <div className="qf-hcell qf-flags-cell">
-            <label><input type="checkbox" /> Pre Invoice</label>
-            <label><input type="checkbox" /> Cash Account</label>
-            <div className="qf-timestamp">
-              <span>Created</span>
-              <span>{quote.date ?? "—"}</span>
-            </div>
-            <div className="qf-timestamp">
-              <span>Sent</span>
-              <input type="checkbox" />
-            </div>
-          </div>
-          {/* Status / email / phone */}
-          <div className="qf-hcell qf-contact-col">
-            <span>{selectedStaff?.email || selectedClient.email || "—"}</span>
-            <span>{selectedStaff?.direct || selectedClient.phone || "—"}</span>
-            <span className="qf-subval">{selectedStaff?.mobile ?? ""}</span>
+          <div className="qf-right-row">
+            <span className="qf-label">SALES STAFF</span>
+            <span className="qf-field-val">{quote.contact}</span>
           </div>
         </div>
       </div>
@@ -2277,8 +2383,8 @@ function QuoteWorkbench({
                   <td>{selectedLine?.thickness.replace(" mm","") ?? "—"}</td>
                   <td>NO</td>
                   <td>{selectedLine ? "10" : "—"}</td>
-                  <td>{selectedLine ? String(parseInt(selectedLine.thickness)*55+2) : "—"}</td>
-                  <td>{selectedLine ? String(parseInt(selectedLine.thickness)*68+4) : "—"}</td>
+                  <td>{selectedLine?.side1 ?? (selectedLine ? "—" : "—")}</td>
+                  <td>{selectedLine?.side2 ?? (selectedLine ? "—" : "—")}</td>
                   <td><input type="checkbox" readOnly /></td>
                 </tr>
                 <tr>
@@ -2436,9 +2542,17 @@ function QuoteWorkbench({
             <div><span>Time (min)</span><strong>{selectedLine ? (selectedLine.total/30).toFixed(2) : "—"}</strong></div>
           </div>
           <div className="qf-summary-desc">
-            <span className="qf-label">PLATE</span>
+            <span className="qf-label">{selectedLine?.predecessor?.toUpperCase() ?? "PLATE"}</span>
             <input placeholder="Part Description" readOnly value={selectedLine?.part ?? ""} />
-            <span className="qf-label">Description</span>
+            <button
+              className="qf-desc-btn"
+              disabled={!selectedLine}
+              onClick={applyDescription}
+              title="Auto-fill description from shape and dimensions"
+              type="button"
+            >
+              Description
+            </button>
           </div>
           <div className="qf-summary-qty">
             <input className="qf-num-input" readOnly value={selectedLine?.qty ?? ""} />
@@ -2463,6 +2577,40 @@ function QuoteWorkbench({
           </div>
         </div>
         <div className="qf-drawer-body">
+          <label className="field">
+            <span>Shape (Predecessor)</span>
+            <select onChange={(e) => updateLineDraft("predecessor", e.target.value)} value={lineDraft.predecessor}>
+              {PREDECESSOR_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </label>
+          {(lineDraft.predecessor === "Plate" || lineDraft.predecessor === "Rectangle" || lineDraft.predecessor === "Square" || lineDraft.predecessor === "Flange" || lineDraft.predecessor === "Rect Flange") && (
+            <div className="qf-dim-row">
+              <label className="field">
+                <span>Side 1 (mm)</span>
+                <input min="0" onChange={(e) => updateLineDraft("side1", e.target.value)} type="number" value={lineDraft.side1} />
+              </label>
+              {lineDraft.predecessor !== "Square" && (
+                <label className="field">
+                  <span>Side 2 (mm)</span>
+                  <input min="0" onChange={(e) => updateLineDraft("side2", e.target.value)} type="number" value={lineDraft.side2} />
+                </label>
+              )}
+            </div>
+          )}
+          {(lineDraft.predecessor === "Ring" || lineDraft.predecessor === "Flange" || lineDraft.predecessor === "Disc" || lineDraft.predecessor === "Rect Flange") && (
+            <div className="qf-dim-row">
+              <label className="field">
+                <span>OD (mm)</span>
+                <input min="0" onChange={(e) => updateLineDraft("od", e.target.value)} type="number" value={lineDraft.od} />
+              </label>
+              {lineDraft.predecessor !== "Disc" && (
+                <label className="field">
+                  <span>ID (mm)</span>
+                  <input min="0" onChange={(e) => updateLineDraft("id", e.target.value)} type="number" value={lineDraft.id} />
+                </label>
+              )}
+            </div>
+          )}
           <label className="field">
             <span>Part description</span>
             <input onChange={(e) => updateLineDraft("part", e.target.value)} placeholder="PLATE 200 x 100" value={lineDraft.part} />
