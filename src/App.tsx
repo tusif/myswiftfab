@@ -607,6 +607,14 @@ export function App() {
     setSuccessorOptions(options);
     localStorage.setItem(LS_SUCCESSOR_OPTIONS, JSON.stringify(options));
   };
+
+  const [bizProfile, setBizProfile] = useState<BusinessProfile>(() =>
+    loadFromLS(LS_BIZ_PROFILE, DEFAULT_BIZ_PROFILE)
+  );
+  const saveBizProfile = (p: BusinessProfile) => {
+    setBizProfile(p);
+    localStorage.setItem(LS_BIZ_PROFILE, JSON.stringify(p));
+  };
   const currentModule = useMemo(
     () => modules.find((module) => module.id === activePage) ?? modules[0],
     [activePage],
@@ -639,12 +647,12 @@ export function App() {
       <section className="workspace">
         {activePage === "dashboard" && <DashboardPage />}
         {activePage === "contacts" && <ContactsPage contactTypes={contactTypes} />}
-        {activePage === "quotes" && <QuotesPage successorOptions={successorOptions} />}
+        {activePage === "quotes" && <QuotesPage successorOptions={successorOptions} bizProfile={bizProfile} />}
         {activePage === "jobs" && <JobsPage />}
         {activePage === "materials" && <MaterialsPage />}
         {activePage === "purchases" && <PurchasesPage />}
         {activePage === "invoices" && <InvoicesPage />}
-        {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} successorOptions={successorOptions} onSuccessorOptionsChange={saveSuccessorOptions} />}
+        {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} successorOptions={successorOptions} onSuccessorOptionsChange={saveSuccessorOptions} bizProfile={bizProfile} onBizProfileChange={saveBizProfile} />}
       </section>
     </main>
   );
@@ -1033,6 +1041,39 @@ const LS_QUOTES = "msf_quotes";
 const LS_LINES = "msf_quote_lines";
 const LS_OTHERS = "msf_quote_others";
 const LS_SUCCESSOR_OPTIONS = "msf_successor_options";
+const LS_BIZ_PROFILE = "msf_biz_profile";
+
+type BusinessProfile = {
+  name: string;
+  tagline: string;
+  abn: string;
+  acn: string;
+  address: string;
+  poBox: string;
+  phone: string;
+  email: string;
+  banking: string;
+  paymentTerms: string;
+  validity: string;
+  disclaimer: string;
+  logoBase64: string;
+};
+
+const DEFAULT_BIZ_PROFILE: BusinessProfile = {
+  name: "MySwiftFab",
+  tagline: "LASER CUTTING | PLASMA CUTTING | FABRICATION",
+  abn: "",
+  acn: "",
+  address: "",
+  poBox: "",
+  phone: "",
+  email: "",
+  banking: "",
+  paymentTerms: "NET 30 DAYS EOM",
+  validity: "DAY OF QUOTE",
+  disclaimer: "*ALL QUOTES ARE SUBJECT TO MATERIAL COST & AVAILABILITY AT TIME OF ORDER.",
+  logoBase64: "",
+};
 
 const DEFAULT_SUCCESSOR_OPTIONS = ["To Email", "To Drawing"];
 
@@ -1040,7 +1081,7 @@ function loadFromLS<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
 }
 
-function QuotesPage({ successorOptions }: { successorOptions: string[] }) {
+function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string[]; bizProfile: BusinessProfile }) {
   const [view, setView] = useState<"list" | "form">("list");
   const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(() => loadFromLS(LS_QUOTES, quotes));
   const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(() => { const saved = loadFromLS<QuoteRecord[]>(LS_QUOTES, quotes); return saved[0] ?? quotes[0]; });
@@ -1182,6 +1223,7 @@ function QuotesPage({ successorOptions }: { successorOptions: string[] }) {
         onSave={saveQuote}
         savedOthers={loadFromLS(LS_OTHERS + "_" + currentQuote.quote, {})}
         successorOptions={successorOptions}
+        bizProfile={bizProfile}
       />
     );
   }
@@ -1712,12 +1754,17 @@ function SettingsPage({
   onContactTypesChange,
   successorOptions,
   onSuccessorOptionsChange,
+  bizProfile,
+  onBizProfileChange,
 }: {
   contactTypes: ContactTypeOption[];
   onContactTypesChange: (contactTypes: ContactTypeOption[]) => void;
   successorOptions: string[];
   onSuccessorOptionsChange: (options: string[]) => void;
+  bizProfile: BusinessProfile;
+  onBizProfileChange: (p: BusinessProfile) => void;
 }) {
+  const biz = (field: keyof BusinessProfile, value: string) => onBizProfileChange({ ...bizProfile, [field]: value });
   const integrationSettings = [
     { name: "Google APIs", status: "Not configured", detail: "Maps, address lookup, Drive, Gmail, or calendar services can be connected here later." },
     { name: "Supabase", status: hasSupabaseConfig ? "Connected" : "Needs env", detail: "Database URL and anon key are read from deployment environment variables." },
@@ -1817,13 +1864,33 @@ function SettingsPage({
           </section>
 
           <section>
-            <h3>Business Profile</h3>
+            <h3>Business Profile &amp; Print Header</h3>
+            <p style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>This information appears on every quote printout.</p>
             <div className="form-grid two">
-              <Field fieldId="businessName" label="Business name" value="MySwiftFab" />
-              <Field fieldId="timezone" label="Timezone" value="Australia/Perth" />
-              <Field fieldId="defaultTax" label="Default GST" value="10%" />
-              <Field fieldId="quotePrefix" label="Quote prefix" value="400" />
+              <label className="field"><span>Business Name</span><input value={bizProfile.name} onChange={e => biz("name", e.target.value)} /></label>
+              <label className="field"><span>Tagline (footer)</span><input value={bizProfile.tagline} onChange={e => biz("tagline", e.target.value)} /></label>
+              <label className="field"><span>ABN</span><input value={bizProfile.abn} onChange={e => biz("abn", e.target.value)} /></label>
+              <label className="field"><span>ACN</span><input value={bizProfile.acn} onChange={e => biz("acn", e.target.value)} /></label>
+              <label className="field"><span>Address</span><input value={bizProfile.address} onChange={e => biz("address", e.target.value)} /></label>
+              <label className="field"><span>PO Box / Postal</span><input value={bizProfile.poBox} onChange={e => biz("poBox", e.target.value)} /></label>
+              <label className="field"><span>Phone</span><input value={bizProfile.phone} onChange={e => biz("phone", e.target.value)} /></label>
+              <label className="field"><span>Email</span><input value={bizProfile.email} onChange={e => biz("email", e.target.value)} /></label>
+              <label className="field"><span>Banking Details</span><input value={bizProfile.banking} onChange={e => biz("banking", e.target.value)} /></label>
+              <label className="field"><span>Payment Terms</span><input value={bizProfile.paymentTerms} onChange={e => biz("paymentTerms", e.target.value)} /></label>
+              <label className="field"><span>Quote Validity</span><input value={bizProfile.validity} onChange={e => biz("validity", e.target.value)} /></label>
             </div>
+            <label className="field" style={{ marginTop: 8 }}><span>Disclaimer (printed on last page)</span><textarea rows={2} style={{ width: "100%", fontFamily: "inherit", fontSize: 12, padding: 4 }} value={bizProfile.disclaimer} onChange={e => biz("disclaimer", e.target.value)} /></label>
+            <label className="field" style={{ marginTop: 8 }}>
+              <span>Company Logo (for printout)</span>
+              <input type="file" accept="image/*" onChange={e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => biz("logoBase64", ev.target?.result as string ?? "");
+                reader.readAsDataURL(file);
+              }} />
+              {bizProfile.logoBase64 && <img src={bizProfile.logoBase64} alt="Logo preview" style={{ height: 48, marginTop: 6, objectFit: "contain" }} />}
+            </label>
           </section>
 
           <section>
@@ -2097,6 +2164,7 @@ function QuoteWorkbench({
   savedOthers,
   quote = quotes[0],
   successorOptions = DEFAULT_SUCCESSOR_OPTIONS,
+  bizProfile = DEFAULT_BIZ_PROFILE,
 }: {
   compact?: boolean;
   lines?: QuoteLine[];
@@ -2108,6 +2176,7 @@ function QuoteWorkbench({
   savedOthers?: Record<number, OtherLineItem[]>;
   quote?: QuoteRecord;
   successorOptions?: string[];
+  bizProfile?: BusinessProfile;
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
@@ -2119,6 +2188,7 @@ function QuoteWorkbench({
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
+  const [showPrint, setShowPrint] = useState(false);
   const LINE_STATUSES = [
     { value: "Q", label: "Q — Quote" },
     { value: "J", label: "J — Job" },
@@ -2358,6 +2428,7 @@ function QuoteWorkbench({
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
             </button>
           )}
+          <button className="qf-print-btn" onClick={() => { setShowPrint(true); setTimeout(() => { window.print(); setShowPrint(false); }, 100); }} type="button">🖨 Print / PDF</button>
         </div>
       )}
 
@@ -2894,7 +2965,151 @@ function QuoteWorkbench({
           <strong>{currency.format(lines.reduce((s, l) => s + (l.costPerM2 ?? 0) * l.qty, 0))}</strong>
         </div>
       </div>
+      {showPrint && (
+        <div className="print-only">
+          <QuotePrintView quote={quote} lines={lines} bizProfile={bizProfile} quoteComments={quoteComments} />
+        </div>
+      )}
     </article>
+  );
+}
+
+// ── Quote Print Layout ────────────────────────────────────────────────────────
+
+function QuotePrintView({ quote, lines, bizProfile, quoteComments }: {
+  quote: QuoteRecord;
+  lines: QuoteLine[];
+  bizProfile: BusinessProfile;
+  quoteComments: string;
+}) {
+  const gstRate = 0.1;
+  const subtotal = lines.reduce((s, l) => s + l.total, 0);
+  const gst = subtotal * gstRate;
+  const total = subtotal + gst;
+  const totalQty = lines.reduce((s, l) => s + l.qty, 0);
+  const printDate = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const quoteDate = quote.date ? new Date(quote.date).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : printDate;
+
+  const ROWS_PER_PAGE = 13;
+  const pages: QuoteLine[][] = [];
+  for (let i = 0; i < lines.length; i += ROWS_PER_PAGE) pages.push(lines.slice(i, i + ROWS_PER_PAGE));
+  if (pages.length === 0) pages.push([]);
+  const totalPages = pages.length + 1; // +1 for comments page
+
+  const PrintHeader = () => (
+    <div className="pv-header">
+      {bizProfile.logoBase64 ? (
+        <img src={bizProfile.logoBase64} alt="Logo" className="pv-logo" />
+      ) : (
+        <div className="pv-logo-placeholder">{bizProfile.name}</div>
+      )}
+      <h1 className="pv-quote-no">QUOTE NO : {quote.quote}</h1>
+      <div className="pv-info-grid">
+        <div className="pv-info-us">
+          <strong>{bizProfile.name}</strong>
+          {bizProfile.tagline && <div className="pv-tagline">{bizProfile.tagline}</div>}
+          {bizProfile.abn && <div>ABN : {bizProfile.abn}</div>}
+          {bizProfile.acn && <div>ACN : {bizProfile.acn}</div>}
+          {bizProfile.poBox && <div>{bizProfile.poBox}</div>}
+          {bizProfile.address && <div>{bizProfile.address}</div>}
+          {bizProfile.email && <div>Email: {bizProfile.email}</div>}
+          {bizProfile.phone && <div>Phone: {bizProfile.phone}</div>}
+        </div>
+        <div className="pv-info-them">
+          <div className="pv-them-dated">
+            <span>DATED</span><span>{quoteDate}</span>
+          </div>
+          <strong className="pv-client-name">{quote.client}</strong>
+          {quote.contact && <div>Attn : {quote.contact}</div>}
+        </div>
+      </div>
+      {quoteComments && <div className="pv-delivery-note">{quoteComments}</div>}
+    </div>
+  );
+
+  const PrintFooter = ({ page, total: tot }: { page: number; total: number }) => (
+    <div className="pv-footer">
+      <div className="pv-footer-tagline">{bizProfile.tagline}</div>
+      <div className="pv-footer-meta">
+        {bizProfile.poBox && <span>{bizProfile.poBox}</span>}
+        <span>Printed on : {printDate} — Page No: {page} of {tot}</span>
+      </div>
+    </div>
+  );
+
+  const TableHeader = () => (
+    <thead>
+      <tr className="pv-col-head">
+        <th>#</th>
+        <th>Part No</th>
+        <th>Description</th>
+        <th>Thickness</th>
+        <th>Material</th>
+        <th>Supp.</th>
+        <th>Qty</th>
+        <th>Unit $</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+  );
+
+  return (
+    <div className="pv-root">
+      {pages.map((pageLines, pi) => (
+        <div key={pi} className="pv-page">
+          <PrintHeader />
+          <table className="pv-table">
+            <TableHeader />
+            <tbody>
+              {pageLines.map((line, i) => {
+                const rowNum = pi * ROWS_PER_PAGE + i + 1;
+                const unitPrice = line.qty > 0 ? line.total / line.qty : 0;
+                return (
+                  <tr key={i} className="pv-row">
+                    <td>{rowNum}</td>
+                    <td>{line.part}</td>
+                    <td className="pv-desc">{line.material ? `${line.material.toUpperCase()} — ` : ""}{line.thickness ? `${line.thickness}mm` : ""}</td>
+                    <td>{line.thickness}</td>
+                    <td>{line.material}</td>
+                    <td>NO</td>
+                    <td>{line.qty}</td>
+                    <td>{currency.format(unitPrice)}</td>
+                    <td>{currency.format(line.total)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <PrintFooter page={pi + 1} total={totalPages} />
+        </div>
+      ))}
+
+      {/* Comments / Totals page */}
+      <div className="pv-page pv-last-page">
+        <PrintHeader />
+        <table className="pv-table">
+          <TableHeader />
+          <tbody>
+            <tr><td colSpan={9} style={{ padding: "12px 8px" }}>
+              {bizProfile.validity && <div><strong>VALIDITY : </strong>{bizProfile.validity}</div>}
+              {bizProfile.paymentTerms && <div><strong>PAYMENT TERMS : </strong>{bizProfile.paymentTerms}</div>}
+              {bizProfile.disclaimer && <div style={{ marginTop: 8 }}>{bizProfile.disclaimer}</div>}
+            </td></tr>
+          </tbody>
+        </table>
+        <div className="pv-totals-bar">
+          {bizProfile.banking && <div className="pv-banking">{bizProfile.banking}</div>}
+          <div className="pv-totals">
+            <div><span>Total Qty:</span><span>{totalQty}</span></div>
+            <div><span>Sub Total :</span><span>{currency.format(subtotal)}</span></div>
+            <div><span>Delivery :</span><span></span></div>
+            <div><span>GST :</span><span>{currency.format(gst)}</span></div>
+            <div className="pv-total-row"><span>Total Amount :</span><span>{currency.format(total)}</span></div>
+          </div>
+        </div>
+        <PrintFooter page={totalPages} total={totalPages} />
+      </div>
+    </div>
   );
 }
 
