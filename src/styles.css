@@ -2198,3 +2198,11 @@ td {
 .pv-footer-meta { display: flex; justify-content: space-between; color: #555; }
 
 @page { size: A4; margin: 0; }
+
+/* ── Quote tab bar ──────────────────────────────────────────────── */
+.qf-tab-bar { display: flex; gap: 2px; background: #ddd8d0; border-bottom: 2px solid #b8a898; padding: 6px 12px 0; }
+.qf-tab { background: #e8e0d6; border: 1px solid #c8beb0; border-bottom: none; border-radius: 4px 4px 0 0; color: #5a4a3a; cursor: pointer; font-size: 12px; font-weight: 600; padding: 5px 18px; transition: background 0.15s; }
+.qf-tab:hover { background: #f0e8de; }
+.qf-tab--active { background: #fff; border-color: #b8a898; color: #2a1a0a; font-weight: 700; }
+.qf-tab-panel { padding: 0; }
+.qf-tab-panel-actions { padding: 8px 12px; background: #f5f0ea; border-bottom: 1px solid #e0d8d0; display: flex; gap: 8px; align-items: center; }
