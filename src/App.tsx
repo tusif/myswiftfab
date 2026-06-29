@@ -2584,12 +2584,20 @@ function QuoteWorkbench({
           </div>
         </div>
         <div className="qf-drawer-body">
-          <label className="field">
-            <span>Shape (Predecessor)</span>
-            <select onChange={(e) => updateLineDraft("predecessor", e.target.value)} value={lineDraft.predecessor}>
-              {PREDECESSOR_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </label>
+          <div className="qf-dim-row">
+            <label className="field" style={{ flex: 1 }}>
+              <span>Predecessor</span>
+              <select onChange={(e) => updateLineDraft("predecessor", e.target.value)} value={lineDraft.predecessor}>
+                {PREDECESSOR_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </label>
+            <label className="field" style={{ flex: 1 }}>
+              <span>Successor</span>
+              <select disabled style={{ opacity: 0.5 }}>
+                <option>— None —</option>
+              </select>
+            </label>
+          </div>
           {(lineDraft.predecessor === "Plate" || lineDraft.predecessor === "Rectangle" || lineDraft.predecessor === "Square" || lineDraft.predecessor === "Flange" || lineDraft.predecessor === "Rect Flange") && (
             <div className="qf-dim-row">
               <label className="field">
@@ -2618,10 +2626,32 @@ function QuoteWorkbench({
               )}
             </div>
           )}
-          <label className="field">
+          <div className="field">
             <span>Part description</span>
-            <input onChange={(e) => updateLineDraft("part", e.target.value)} placeholder="PLATE 200 x 100" value={lineDraft.part} />
-          </label>
+            <div className="qf-desc-field-row">
+              <input
+                onChange={(e) => updateLineDraft("part", e.target.value)}
+                placeholder="PLATE 200 x 100"
+                value={lineDraft.part}
+                style={{ flex: 1 }}
+              />
+              <button
+                className="qf-desc-btn"
+                onClick={() => {
+                  const generated = calcPartDescription(lineDraft, holeRows);
+                  if (!lineDraft.part.trim() || lineDraft.part.trim().length <= 1) {
+                    updateLineDraft("part", generated);
+                  } else if (window.confirm("Replace existing description?")) {
+                    updateLineDraft("part", generated);
+                  }
+                }}
+                title="Auto-generate from shape and dimensions"
+                type="button"
+              >
+                Description
+              </button>
+            </div>
+          </div>
           <label className="field">
             <span>Material</span>
             <select onChange={(e) => selectMaterialRate(e.target.value)} value={lineDraft.materialRateId}>

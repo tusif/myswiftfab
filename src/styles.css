@@ -1991,10 +1991,12 @@ td {
 
 .qf-summary-desc { display: flex; flex-direction: column; gap: 2px; width: 180px; flex-shrink: 0; }
 .qf-summary-desc input { border: 1px solid #ccc; font-weight: 700; padding: 2px 5px; width: 100%; background: #fff; }
-.qf-desc-btn { background: #6a3d9a; color: #fff; border: none; font-size: 9px; font-weight: 800; padding: 3px 8px; cursor: pointer; border-radius: 2px; text-align: center; letter-spacing: 0.5px; }
+.qf-desc-btn { background: #6a3d9a; color: #fff; border: none; font-size: 9px; font-weight: 800; padding: 3px 8px; cursor: pointer; border-radius: 2px; text-align: center; letter-spacing: 0.5px; white-space: nowrap; }
 .qf-desc-btn:disabled { opacity: 0.4; cursor: default; }
 .qf-desc-btn:not(:disabled):hover { background: #5a2d8a; }
 .qf-dim-row { display: flex; gap: 8px; }
+.qf-desc-field-row { display: flex; gap: 6px; align-items: center; }
+.qf-desc-field-row input { flex: 1; }
 
 .qf-summary-qty { width: 44px; }
 .qf-summary-qty input { width: 40px; }
