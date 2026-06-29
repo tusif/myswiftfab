@@ -2521,141 +2521,79 @@ function QuoteWorkbench({
       <div className="qf-calc-panel">
         <div className="qf-calc-layout">
 
-          {/* Left: calculator grid */}
-          <div className="qf-calc-left" style={detailTab === "others" ? { gridColumn: "1 / -1" } : undefined}>
+          {/* Left: Others table */}
+          <div className="qf-calc-left">
             <div className="qf-calc-tabs">
-              <button aria-selected={detailTab === "detail"} className="qf-calc-tab" onClick={() => setDetailTab("detail")} type="button">Calculator</button>
-              <button aria-selected={detailTab === "others"} className="qf-calc-tab" onClick={() => setDetailTab("others")} type="button">Others</button>
+              <span className="qf-calc-tab-label">Others</span>
             </div>
-
-            {/* Material grid — hidden when Others tab active */}
-            <table className="qf-calc-table" style={detailTab === "others" ? { display: "none" } : undefined}>
-              <thead>
-                <tr>
-                  <th className="qf-row-head">Material</th>
-                  <th>{selectedLine?.material ?? "M/S"}</th>
-                  <th>Supplied</th>
-                  <th>Offset</th>
-                  <th>Side1</th>
-                  <th>Side2</th>
-                  <th>Incl.</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="qf-row-label">Thick</td>
-                  <td>{selectedLine?.thickness.replace(" mm","") ?? "—"}</td>
-                  <td>NO</td>
-                  <td>{selectedLine ? "10" : "—"}</td>
-                  <td>{selectedLine?.side1 ?? (selectedLine ? "—" : "—")}</td>
-                  <td>{selectedLine?.side2 ?? (selectedLine ? "—" : "—")}</td>
-                  <td><input type="checkbox" readOnly /></td>
-                </tr>
-                <tr>
-                  <td className="qf-row-label">Feed Rate</td>
-                  <td>{formatMaterialValue(selectedLine?.feed ?? null)}</td>
-                  <td colSpan={2} className="qf-row-label">Material :</td>
-                  <td>{selectedLine ? String(Math.round(selectedLine.cut*12+580)) : "—"}</td>
-                  <td>{selectedLine ? String(Math.round(selectedLine.cut*15+690)) : "—"}</td>
-                  <td>{selectedLine ? String(Math.round(selectedLine.cut*28+2800)) : "—"}</td>
-                </tr>
-                <tr>
-                  <td className="qf-row-label">Cut Rate</td>
-                  <td>{selectedLine?.cut.toFixed(2) ?? "—"}</td>
-                  <td className="qf-btn-cell" colSpan={1}><button className="qf-all-btn" type="button">All</button></td>
-                  <td className="qf-row-label">Laser Holes</td>
-                  <td className="qf-col-hdr">HOLES</td>
-                  <td className="qf-col-hdr">DIA</td>
-                  <td>{selectedLine?.qty ?? "—"}</td>
-                </tr>
-                <tr>
-                  <td className="qf-row-label">$ m2 Rate</td>
-                  <td>{formatMaterialValue(selectedLine?.costPerM2 ?? null)}</td>
-                  <td colSpan={2} className="qf-row-label">Slots</td>
-                  <td className="qf-col-hdr">QTY</td>
-                  <td className="qf-col-hdr">S1</td>
-                  <td className="qf-col-hdr">S2</td>
-                </tr>
-                <tr>
-                  <td className="qf-row-label">Piercing</td>
-                  <td>{selectedLine?.pierce.toFixed(2) ?? "—"}</td>
-                  <td colSpan={2} className="qf-row-label">Len</td>
-                  <td colSpan={3} className="qf-col-hdr">LEN</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Others table */}
-            {detailTab === "others" && (
-              <div className="qf-others-wrap">
-                <table className="qf-others-tbl">
-                  <thead>
-                    <tr>
-                      <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentOthers.map((o) => {
-                      const salesEach = o.cost * (1 + o.markupPct / 100);
-                      const costTotal = o.cost * o.qty;
-                      const amountTotal = salesEach * o.qty;
-                      return (
-                        <tr key={o.id}>
-                          <td className="qf-others-cat-cell">
-                            <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
-                              {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
+            <div className="qf-others-wrap">
+              <table className="qf-others-tbl">
+                <thead>
+                  <tr>
+                    <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentOthers.map((o) => {
+                    const salesEach = o.cost * (1 + o.markupPct / 100);
+                    const costTotal = o.cost * o.qty;
+                    const amountTotal = salesEach * o.qty;
+                    return (
+                      <tr key={o.id}>
+                        <td className="qf-others-cat-cell">
+                          <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
+                            {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
+                        </td>
+                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
+                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
+                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
+                        <td>{salesEach.toFixed(2)}</td>
+                        <td>{costTotal.toFixed(2)}</td>
+                        <td>{amountTotal.toFixed(2)}</td>
+                        <td>{(() => {
+                          const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
+                          return (
+                            <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
+                              <option value="">— Supplier —</option>
+                              {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
                             </select>
-                            <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
-                          </td>
-                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
-                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
-                          <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
-                          <td>{salesEach.toFixed(2)}</td>
-                          <td>{costTotal.toFixed(2)}</td>
-                          <td>{amountTotal.toFixed(2)}</td>
-                          <td>{(() => {
-                            const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
-                            return (
-                              <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
-                                <option value="">— Supplier —</option>
-                                {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
-                              </select>
-                            );
-                          })()}</td>
-                          <td>{(() => {
-                            const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
-                            const staffList = supplierContact?.staff ?? [];
-                            return (
-                              <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
-                                <option value="">— Staff —</option>
-                                {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                              </select>
-                            );
-                          })()}</td>
-                          <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
-                          <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
-                        </tr>
-                      );
-                    })}
-                    {currentOthers.length === 0 && (
-                      <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add Category above</td></tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
-                      <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersCostTotal)}</td>
-                      <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersAmountTotal)}</td>
-                      <td colSpan={4}></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
+                          );
+                        })()}</td>
+                        <td>{(() => {
+                          const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
+                          const staffList = supplierContact?.staff ?? [];
+                          return (
+                            <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
+                              <option value="">— Staff —</option>
+                              {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                            </select>
+                          );
+                        })()}</td>
+                        <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
+                        <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
+                      </tr>
+                    );
+                  })}
+                  {currentOthers.length === 0 && (
+                    <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add Category above</td></tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
+                    <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersCostTotal)}</td>
+                    <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersAmountTotal)}</td>
+                    <td colSpan={4}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
 
-          {/* Right: Hole Type table — hidden when Others tab active */}
-          <div className="qf-calc-right" style={detailTab === "others" ? { display: "none" } : undefined}>
+          {/* Right: Hole Type table */}
+          <div className="qf-calc-right">
             <div className="qf-calc-right-spacer" />
             <table className="qf-calc-table">
               <thead>
