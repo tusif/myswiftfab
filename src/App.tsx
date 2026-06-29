@@ -2492,6 +2492,7 @@ function QuoteWorkbench({
 
           {/* Right: Hole Type table — hidden when Others tab active */}
           <div className="qf-calc-right" style={detailTab === "others" ? { display: "none" } : undefined}>
+            <div className="qf-calc-right-spacer" />
             <table className="qf-calc-table">
               <thead>
                 <tr>

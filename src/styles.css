@@ -1878,6 +1878,15 @@ td {
   display: flex;
   border-bottom: 1px solid #c0b8b0;
   background: #eee8dd;
+  height: 29px;
+  box-sizing: border-box;
+}
+
+.qf-calc-right-spacer {
+  height: 29px;
+  box-sizing: border-box;
+  background: #eee8dd;
+  border-bottom: 1px solid #c0b8b0;
 }
 
 .qf-calc-tab {
