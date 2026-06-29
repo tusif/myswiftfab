@@ -2725,14 +2725,10 @@ function QuoteWorkbench({
 
       {/* ── Footer ── */}
       <div className="qf-footer">
-        {/* NOTES | NOTES FOR */}
+        {/* NOTES */}
         <div className="qf-notes-col">
           <div className="qf-section-head">NOTES</div>
           <textarea onChange={(e) => setQuoteComments(e.target.value)} placeholder="Quote Notes" value={quoteComments} />
-          <div className="qf-section-head">NOTES FOR :</div>
-          <div className="qf-note-meta">
-            <span>{selectedClient.company}</span>
-          </div>
         </div>
 
         {/* Delivery Notes | Quote Delivery | Summary table */}
