@@ -125,6 +125,7 @@ type QuoteLine = {
   pierce: number;
   total: number;
   predecessor?: string;
+  successor?: string;
   side1?: number | null;
   side2?: number | null;
   od?: number | null;
@@ -143,6 +144,7 @@ type QuoteLineDraft = {
   cut: string;
   pierce: string;
   predecessor: string;
+  successor: string;
   side1: string;
   side2: string;
   od: string;
@@ -481,6 +483,7 @@ function createBlankQuoteLineDraft(): QuoteLineDraft {
     cut: formatMaterialValue(defaultMaterial.cutRate),
     pierce: formatMaterialValue(defaultMaterial.piercingRate),
     predecessor: "Plate",
+    successor: "",
     side1: "",
     side2: "",
     od: "",
@@ -507,6 +510,7 @@ function createQuoteLineFromDraft(draft: QuoteLineDraft): QuoteLine {
     pierce,
     total: qty * (cut + pierce),
     predecessor: draft.predecessor,
+    successor: draft.successor,
     side1: draft.side1 ? Number(draft.side1) : null,
     side2: draft.side2 ? Number(draft.side2) : null,
     od: draft.od ? Number(draft.od) : null,
@@ -595,6 +599,14 @@ const currency = new Intl.NumberFormat("en-AU", {
 export function App() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [contactTypes, setContactTypes] = useState<ContactTypeOption[]>(defaultContactTypes);
+  const [successorOptions, setSuccessorOptions] = useState<string[]>(() =>
+    loadFromLS(LS_SUCCESSOR_OPTIONS, DEFAULT_SUCCESSOR_OPTIONS)
+  );
+
+  const saveSuccessorOptions = (options: string[]) => {
+    setSuccessorOptions(options);
+    localStorage.setItem(LS_SUCCESSOR_OPTIONS, JSON.stringify(options));
+  };
   const currentModule = useMemo(
     () => modules.find((module) => module.id === activePage) ?? modules[0],
     [activePage],
@@ -627,12 +639,12 @@ export function App() {
       <section className="workspace">
         {activePage === "dashboard" && <DashboardPage />}
         {activePage === "contacts" && <ContactsPage contactTypes={contactTypes} />}
-        {activePage === "quotes" && <QuotesPage />}
+        {activePage === "quotes" && <QuotesPage successorOptions={successorOptions} />}
         {activePage === "jobs" && <JobsPage />}
         {activePage === "materials" && <MaterialsPage />}
         {activePage === "purchases" && <PurchasesPage />}
         {activePage === "invoices" && <InvoicesPage />}
-        {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} />}
+        {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} successorOptions={successorOptions} onSuccessorOptionsChange={saveSuccessorOptions} />}
       </section>
     </main>
   );
@@ -1020,12 +1032,15 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
 const LS_QUOTES = "msf_quotes";
 const LS_LINES = "msf_quote_lines";
 const LS_OTHERS = "msf_quote_others";
+const LS_SUCCESSOR_OPTIONS = "msf_successor_options";
+
+const DEFAULT_SUCCESSOR_OPTIONS = ["To Email", "To Drawing"];
 
 function loadFromLS<T>(key: string, fallback: T): T {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
 }
 
-function QuotesPage() {
+function QuotesPage({ successorOptions }: { successorOptions: string[] }) {
   const [view, setView] = useState<"list" | "form">("list");
   const [quoteRecords, setQuoteRecords] = useState<QuoteRecord[]>(() => loadFromLS(LS_QUOTES, quotes));
   const [currentQuote, setCurrentQuote] = useState<QuoteRecord>(() => { const saved = loadFromLS<QuoteRecord[]>(LS_QUOTES, quotes); return saved[0] ?? quotes[0]; });
@@ -1166,6 +1181,7 @@ function QuotesPage() {
         onNewQuote={openNewQuoteClientPicker}
         onSave={saveQuote}
         savedOthers={loadFromLS(LS_OTHERS + "_" + currentQuote.quote, {})}
+        successorOptions={successorOptions}
       />
     );
   }
@@ -1694,9 +1710,13 @@ function ContactTypeCheckboxes({
 function SettingsPage({
   contactTypes,
   onContactTypesChange,
+  successorOptions,
+  onSuccessorOptionsChange,
 }: {
   contactTypes: ContactTypeOption[];
   onContactTypesChange: (contactTypes: ContactTypeOption[]) => void;
+  successorOptions: string[];
+  onSuccessorOptionsChange: (options: string[]) => void;
 }) {
   const integrationSettings = [
     { name: "Google APIs", status: "Not configured", detail: "Maps, address lookup, Drive, Gmail, or calendar services can be connected here later." },
@@ -1751,6 +1771,42 @@ function SettingsPage({
                     className="row-icon-button"
                     onClick={() => removeContactType(contactType.id)}
                     title="Remove contact type"
+                    type="button"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="settings-section-heading">
+              <div>
+                <h3>Successor Options</h3>
+                <p>These values appear in the Successor dropdown when adding or editing a quote line item.</p>
+              </div>
+              <button className="secondary-action" onClick={() => onSuccessorOptionsChange([...successorOptions, "New Option"])} type="button">
+                <Plus size={16} />
+                <span>Add Option</span>
+              </button>
+            </div>
+            <div className="lookup-list">
+              {successorOptions.map((option, index) => (
+                <div className="lookup-row" key={index}>
+                  <input
+                    aria-label={`Successor option ${option}`}
+                    onChange={(e) => {
+                      const next = [...successorOptions];
+                      next[index] = e.target.value;
+                      onSuccessorOptionsChange(next);
+                    }}
+                    value={option}
+                  />
+                  <button
+                    className="row-icon-button"
+                    onClick={() => onSuccessorOptionsChange(successorOptions.filter((_, i) => i !== index))}
+                    title="Remove option"
                     type="button"
                   >
                     <Trash2 size={16} />
@@ -2040,6 +2096,7 @@ function QuoteWorkbench({
   onSave,
   savedOthers,
   quote = quotes[0],
+  successorOptions = DEFAULT_SUCCESSOR_OPTIONS,
 }: {
   compact?: boolean;
   lines?: QuoteLine[];
@@ -2050,6 +2107,7 @@ function QuoteWorkbench({
   onSave?: (lineOthers: Record<number, OtherLineItem[]>) => void;
   savedOthers?: Record<number, OtherLineItem[]>;
   quote?: QuoteRecord;
+  successorOptions?: string[];
 }) {
   const [isLineFormOpen, setIsLineFormOpen] = useState(false);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
@@ -2160,6 +2218,7 @@ function QuoteWorkbench({
       cut: String(line.cut),
       pierce: String(line.pierce),
       predecessor: line.predecessor ?? "Plate",
+      successor: line.successor ?? "",
       side1: String(line.side1 ?? ""),
       side2: String(line.side2 ?? ""),
       od: String(line.od ?? ""),
@@ -2230,6 +2289,7 @@ function QuoteWorkbench({
       cut: String(line.cut),
       pierce: String(line.pierce),
       predecessor: pred,
+      successor: line.successor ?? "",
       side1: String(line.side1 ?? ""),
       side2: String(line.side2 ?? ""),
       od: String(line.od ?? ""),
@@ -2593,8 +2653,9 @@ function QuoteWorkbench({
             </label>
             <label className="field" style={{ flex: 1 }}>
               <span>Successor</span>
-              <select disabled style={{ opacity: 0.5 }}>
-                <option>— None —</option>
+              <select onChange={(e) => updateLineDraft("successor", e.target.value)} value={lineDraft.successor}>
+                <option value="">— None —</option>
+                {successorOptions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </label>
           </div>
