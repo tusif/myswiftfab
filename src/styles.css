@@ -913,6 +913,8 @@ h3 {
   z-index: 100;
 }
 .qf-drawer--open { transform: translateX(0); }
+.qf-drawer--wide { width: min(90vw, 900px); }
+.qf-drawer-badge { background: #e74c3c; color: #fff; font-size: 10px; font-weight: 800; border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
 .qf-drawer-header {
   align-items: center;
   border-bottom: 1px solid #e3e7ec;

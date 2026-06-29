@@ -2189,6 +2189,8 @@ function QuoteWorkbench({
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
   const [showPrint, setShowPrint] = useState(false);
+  const [isHolesOpen, setIsHolesOpen] = useState(false);
+  const [isOthersOpen, setIsOthersOpen] = useState(false);
   const LINE_STATUSES = [
     { value: "Q", label: "Q — Quote" },
     { value: "J", label: "J — Job" },
@@ -2421,8 +2423,12 @@ function QuoteWorkbench({
             <button className="primary-action" onClick={onNewQuote} type="button">+ New Quote</button>
           )}
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
-          <button className="primary-action" onClick={addOtherRow} type="button">+ Add Category</button>
-          <button className="primary-action" onClick={addHoleRow} type="button">+ Add Hole</button>
+          <button className="primary-action" onClick={() => setIsOthersOpen(true)} type="button">
+            Others {currentOthers.length > 0 && <span className="qf-drawer-badge">{currentOthers.length}</span>}
+          </button>
+          <button className="primary-action" onClick={() => setIsHolesOpen(true)} type="button">
+            Holes {holeRows.length > 0 && <span className="qf-drawer-badge">{holeRows.length}</span>}
+          </button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
@@ -2517,121 +2523,135 @@ function QuoteWorkbench({
         </div>
       </div>
 
-      {/* ── Calculator panel ── */}
-      <div className="qf-calc-panel">
-        <div className="qf-calc-layout">
-
-          {/* Left: Others table */}
-          <div className="qf-calc-left">
-            <div className="qf-calc-tabs">
-              <span className="qf-calc-tab-label">Others</span>
-            </div>
-            <div className="qf-others-wrap">
-              <table className="qf-others-tbl">
-                <thead>
-                  <tr>
-                    <th>Category</th><th>Qty</th><th>Cost</th><th>$ago</th><th>Sales</th><th>Cost</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentOthers.map((o) => {
-                    const salesEach = o.cost * (1 + o.markupPct / 100);
-                    const costTotal = o.cost * o.qty;
-                    const amountTotal = salesEach * o.qty;
-                    return (
-                      <tr key={o.id}>
-                        <td className="qf-others-cat-cell">
-                          <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
-                            {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                          <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
-                        </td>
-                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
-                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
-                        <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
-                        <td>{salesEach.toFixed(2)}</td>
-                        <td>{costTotal.toFixed(2)}</td>
-                        <td>{amountTotal.toFixed(2)}</td>
-                        <td>{(() => {
-                          const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
-                          return (
-                            <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
-                              <option value="">— Supplier —</option>
-                              {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
-                            </select>
-                          );
-                        })()}</td>
-                        <td>{(() => {
-                          const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
-                          const staffList = supplierContact?.staff ?? [];
-                          return (
-                            <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
-                              <option value="">— Staff —</option>
-                              {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                            </select>
-                          );
-                        })()}</td>
-                        <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
-                        <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
-                      </tr>
-                    );
-                  })}
-                  {currentOthers.length === 0 && (
-                    <tr className="qf-others-placeholder"><td colSpan={11}>No others for this line — click + Add Category above</td></tr>
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: "center", fontWeight: 700 }}>Total:</td>
-                    <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersCostTotal)}</td>
-                    <td style={{ fontWeight: 700, background: "#d4b8e0" }}>{currency.format(othersAmountTotal)}</td>
-                    <td colSpan={4}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+      {/* ── Others Drawer ── */}
+      {isOthersOpen && <div className="qf-drawer-overlay" onClick={() => setIsOthersOpen(false)} />}
+      <aside className={`qf-drawer qf-drawer--wide${isOthersOpen ? " qf-drawer--open" : ""}`} aria-label="Others">
+        <div className="qf-drawer-header">
+          <div>
+            <p className="eyebrow">Line {selectedLineIndex + 1} — {selectedLine?.part || "Part"}</p>
+            <h3>Others</h3>
           </div>
-
-          {/* Right: Hole Type table */}
-          <div className="qf-calc-right">
-            <div className="qf-calc-right-spacer" />
-            <table className="qf-calc-table">
-              <thead>
-                <tr>
-                  <th>Hole Type</th><th>Qty</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Perimeter</th><th>Hole Desc</th><th>Weight</th><th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {holeRows.map(h => {
-                  const isSlot = h.holeType === "Slots";
-                  const isLen = h.holeType === "Len";
-                  const needsDia = h.holeType === "Laser Cut Holes" || h.holeType === "Drilled Holes";
-                  return (
-                    <tr key={h.id}>
-                      <td>
-                        <select style={{ width: "100%", border: "none", background: "transparent", fontWeight: 600 }} value={h.holeType} onChange={e => updateHoleRow(h.id, "holeType", e.target.value)}>
-                          {HOLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </td>
-                      <td><input className="qf-num-input" value={h.qty} onChange={e => updateHoleRow(h.id, "qty", e.target.value)} placeholder="Qty" /></td>
-                      <td><input className="qf-num-input" value={h.dia} onChange={e => updateHoleRow(h.id, "dia", e.target.value)} disabled={!needsDia} style={{ opacity: needsDia ? 1 : 0.3 }} placeholder="Dia" /></td>
-                      <td><input className="qf-num-input" value={h.side1} onChange={e => updateHoleRow(h.id, "side1", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S1" /></td>
-                      <td><input className="qf-num-input" value={h.side2} onChange={e => updateHoleRow(h.id, "side2", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S2" /></td>
-                      <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} disabled={!isLen} style={{ opacity: isLen ? 1 : 0.3 }} placeholder="Len" /></td>
-                      <td style={{ fontWeight: 700, textAlign: "center" }}>{calcPerimeter(h)}</td>
-                      <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeDesc} onChange={e => updateHoleRow(h.id, "holeDesc", e.target.value)} placeholder="Description" /></td>
-                      <td style={{ fontWeight: 700, textAlign: "center", color: "#555" }}>{calcHoleWeight(h)}</td>
-                      <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
-                    </tr>
-                  );
-                })}
-                {holeRows.length === 0 && (
-                  <tr><td colSpan={10} style={{ color: "#bbb", fontStyle: "italic", padding: "8px", textAlign: "center" }}>No holes — click + Add Hole above</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div className="quote-picker-actions">
+            <button className="secondary-action" onClick={addOtherRow} type="button">+ Add Row</button>
+            <button className="primary-action" onClick={() => setIsOthersOpen(false)} type="button">Done</button>
           </div>
         </div>
+        <div className="qf-drawer-body" style={{ padding: 0, overflowX: "auto" }}>
+          <table className="qf-others-tbl" style={{ width: "100%" }}>
+            <thead>
+              <tr><th>Category</th><th>Qty</th><th>Cost</th><th>%ago</th><th>Sales Each</th><th>Cost Total</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th></tr>
+            </thead>
+            <tbody>
+              {currentOthers.map((o) => {
+                const salesEach = o.cost * (1 + o.markupPct / 100);
+                const costTotal = o.cost * o.qty;
+                const amountTotal = salesEach * o.qty;
+                return (
+                  <tr key={o.id}>
+                    <td className="qf-others-cat-cell">
+                      <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
+                        {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
+                    </td>
+                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
+                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
+                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
+                    <td style={{ textAlign: "right" }}>{salesEach.toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>{costTotal.toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>{amountTotal.toFixed(2)}</td>
+                    <td>{(() => {
+                      const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
+                      return (
+                        <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
+                          <option value="">— Supplier —</option>
+                          {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
+                        </select>
+                      );
+                    })()}</td>
+                    <td>{(() => {
+                      const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
+                      const staffList = supplierContact?.staff ?? [];
+                      return (
+                        <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
+                          <option value="">— Staff —</option>
+                          {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        </select>
+                      );
+                    })()}</td>
+                    <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
+                    <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
+                  </tr>
+                );
+              })}
+              {currentOthers.length === 0 && (
+                <tr className="qf-others-placeholder"><td colSpan={11}>No others yet — click + Add Row above</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={5} style={{ textAlign: "right", fontWeight: 700, padding: "6px 8px" }}>Totals:</td>
+                <td style={{ fontWeight: 700, background: "#d4b8e0", textAlign: "right", padding: "6px 8px" }}>{currency.format(othersCostTotal)}</td>
+                <td style={{ fontWeight: 700, background: "#d4b8e0", textAlign: "right", padding: "6px 8px" }}>{currency.format(othersAmountTotal)}</td>
+                <td colSpan={4}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </aside>
+
+      {/* ── Holes Drawer ── */}
+      {isHolesOpen && <div className="qf-drawer-overlay" onClick={() => setIsHolesOpen(false)} />}
+      <aside className={`qf-drawer qf-drawer--wide${isHolesOpen ? " qf-drawer--open" : ""}`} aria-label="Holes">
+        <div className="qf-drawer-header">
+          <div>
+            <p className="eyebrow">Line {selectedLineIndex + 1} — {selectedLine?.part || "Part"}</p>
+            <h3>Holes</h3>
+          </div>
+          <div className="quote-picker-actions">
+            <button className="secondary-action" onClick={addHoleRow} type="button">+ Add Hole</button>
+            <button className="primary-action" onClick={() => setIsHolesOpen(false)} type="button">Done</button>
+          </div>
+        </div>
+        <div className="qf-drawer-body" style={{ padding: 0, overflowX: "auto" }}>
+          <table className="qf-calc-table" style={{ width: "100%" }}>
+            <thead>
+              <tr><th>Hole Type</th><th>Qty</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Perimeter</th><th>Hole Desc</th><th>Weight (kg)</th><th></th></tr>
+            </thead>
+            <tbody>
+              {holeRows.map(h => {
+                const isSlot = h.holeType === "Slots";
+                const isLen = h.holeType === "Len";
+                const needsDia = h.holeType === "Laser Cut Holes" || h.holeType === "Drilled Holes";
+                return (
+                  <tr key={h.id}>
+                    <td>
+                      <select style={{ width: "100%", border: "none", background: "transparent", fontWeight: 600 }} value={h.holeType} onChange={e => updateHoleRow(h.id, "holeType", e.target.value)}>
+                        {HOLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </td>
+                    <td><input className="qf-num-input" value={h.qty} onChange={e => updateHoleRow(h.id, "qty", e.target.value)} placeholder="Qty" /></td>
+                    <td><input className="qf-num-input" value={h.dia} onChange={e => updateHoleRow(h.id, "dia", e.target.value)} disabled={!needsDia} style={{ opacity: needsDia ? 1 : 0.3 }} placeholder="Dia" /></td>
+                    <td><input className="qf-num-input" value={h.side1} onChange={e => updateHoleRow(h.id, "side1", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S1" /></td>
+                    <td><input className="qf-num-input" value={h.side2} onChange={e => updateHoleRow(h.id, "side2", e.target.value)} disabled={!isSlot} style={{ opacity: isSlot ? 1 : 0.3 }} placeholder="S2" /></td>
+                    <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} disabled={!isLen} style={{ opacity: isLen ? 1 : 0.3 }} placeholder="Len" /></td>
+                    <td style={{ fontWeight: 700, textAlign: "center" }}>{calcPerimeter(h)}</td>
+                    <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeDesc} onChange={e => updateHoleRow(h.id, "holeDesc", e.target.value)} placeholder="Description" /></td>
+                    <td style={{ fontWeight: 700, textAlign: "center", color: "#555" }}>{calcHoleWeight(h)}</td>
+                    <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
+                  </tr>
+                );
+              })}
+              {holeRows.length === 0 && (
+                <tr><td colSpan={10} style={{ color: "#bbb", fontStyle: "italic", padding: "12px", textAlign: "center" }}>No holes yet — click + Add Hole above</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </aside>
+
+      {/* ── Summary bar ── */}
+      <div className="qf-calc-panel">
 
         {/* Summary bar: Material / Cutting / Piercing / Other / Rate / Weight / Time | Description | Total */}
         <div className="qf-calc-summary">
