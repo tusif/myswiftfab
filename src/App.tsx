@@ -483,7 +483,7 @@ function createBlankQuoteLineDraft(): QuoteLineDraft {
     cut: formatMaterialValue(defaultMaterial.cutRate),
     pierce: formatMaterialValue(defaultMaterial.piercingRate),
     predecessor: "Plate",
-    successor: "",
+    successor: "To Email",
     side1: "",
     side2: "",
     od: "",
