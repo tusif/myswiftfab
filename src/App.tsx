@@ -2152,6 +2152,33 @@ function QuoteWorkbench({
     if (h.holeType === "Len") return String(len);
     return "—";
   }
+
+  // Density defaults (kg/m³) used when material rate has no density set
+  const DENSITY_DEFAULTS: Record<string, number> = {
+    "M/S": 7850, "MS": 7850, "MILD STEEL": 7850,
+    "SS": 7900, "STAINLESS": 7900, "S/S": 7900,
+    "AL": 2700, "ALI": 2700, "ALUMINIUM": 2700, "ALUMINUM": 2700,
+    "COP": 8960, "COPPER": 8960,
+    "BRASS": 8500,
+  };
+
+  function getMaterialDensity(): number {
+    const matKey = lineDraft.material.toUpperCase().trim();
+    const rate = materialRates.find(r => r.material === lineDraft.material);
+    if (rate?.density) return rate.density;
+    return DENSITY_DEFAULTS[matKey] ?? 7850;
+  }
+
+  function calcHoleWeight(h: HoleRow): string {
+    if (h.holeType !== "Laser Cut Holes") return "—";
+    const dia = Number(h.dia) || 0;
+    const qty = Number(h.qty) || 0;
+    const thickness = parseFloat(lineDraft.thickness) || 0;
+    const density = getMaterialDensity();
+    if (!dia || !qty || !thickness) return "—";
+    const weight = Math.round(((3.1416 * dia * dia / 4) * qty * thickness * density) / 1000000000 * 100) / 100;
+    return weight.toFixed(2);
+  }
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
   const selectedStaff = selectedClient.staff.find((staffMember) => staffMember.name === selectedStaffName) ?? selectedClient.staff[0];
   const selectedLine = lines[selectedLineIndex] ?? null;
@@ -2584,7 +2611,7 @@ function QuoteWorkbench({
                       <td><input className="qf-num-input" value={h.len} onChange={e => updateHoleRow(h.id, "len", e.target.value)} disabled={!isLen} style={{ opacity: isLen ? 1 : 0.3 }} placeholder="Len" /></td>
                       <td style={{ fontWeight: 700, textAlign: "center" }}>{calcPerimeter(h)}</td>
                       <td><input style={{ width: "100%", border: "none", background: "transparent" }} value={h.holeDesc} onChange={e => updateHoleRow(h.id, "holeDesc", e.target.value)} placeholder="Description" /></td>
-                      <td><input className="qf-num-input" value={h.weight} onChange={e => updateHoleRow(h.id, "weight", e.target.value)} placeholder="kg" /></td>
+                      <td style={{ fontWeight: 700, textAlign: "center", color: "#555" }}>{calcHoleWeight(h)}</td>
                       <td className="qf-del-cell"><button style={{ background: "none", border: "none", color: "#c0392b", cursor: "pointer" }} onClick={() => removeHoleRow(h.id)} type="button">✕</button></td>
                     </tr>
                   );
