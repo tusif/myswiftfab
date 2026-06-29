@@ -2281,7 +2281,9 @@ function QuoteWorkbench({
           <div className="qf-hrow qf-hrow-labels">
             <div className="qf-col-head">CLIENT</div>
             <div className="qf-col-head">STAFF</div>
-            <div className="qf-col-head" style={{ gridColumn: "3 / span 2" }}>DELIVERY DETAILS</div>
+            <div className="qf-col-head">DELIVERY DETAILS</div>
+            <div className="qf-col-head">NOTES FOR</div>
+            <div className="qf-col-head">FLAGS</div>
           </div>
 
           {/* Row 2: client data */}
@@ -2311,6 +2313,10 @@ function QuoteWorkbench({
               <input placeholder="PostCode" className="qf-subinput" style={{ width: "20%" }} />
               <input placeholder="Suburb" className="qf-subinput" style={{ width: "60%" }} />
               <input placeholder="State" className="qf-subinput" style={{ width: "30%" }} />
+            </div>
+            {/* Notes For — client notes visible at quote level */}
+            <div className="qf-hcell qf-notes-for-cell">
+              <span className="qf-subval qf-notes-for-text">{selectedClient.notes || "—"}</span>
             </div>
             {/* Flags */}
             <div className="qf-hcell qf-flags-cell">

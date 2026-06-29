@@ -1759,7 +1759,7 @@ td {
 
 .qf-header-main { flex: 1; min-width: 0; }
 
-.qf-hrow { display: grid; grid-template-columns: 0.9fr 0.9fr 0.7fr 0.5fr; }
+.qf-hrow { display: grid; grid-template-columns: repeat(5, 1fr); }
 
 .qf-hrow-labels { background: #eee8dd; }
 
@@ -1854,6 +1854,9 @@ td {
 
 .qf-flags-cell { gap: 4px; font-size: 10px; }
 .qf-flags-cell label { display: flex; align-items: center; gap: 4px; }
+
+.qf-notes-for-cell { overflow: hidden; }
+.qf-notes-for-text { font-size: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 .qf-timestamp { display: flex; gap: 6px; font-size: 10px; color: #555; }
 
