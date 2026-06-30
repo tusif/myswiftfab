@@ -2376,7 +2376,8 @@ function QuoteWorkbench({
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
-  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines" | "others">("lines");
+  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines">("lines");
+  const [showOthersPanel, setShowOthersPanel] = useState(false);
   const [selectedClientName, setSelectedClientName] = useState(quote.client);
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
@@ -2677,6 +2678,7 @@ function QuoteWorkbench({
           <button className="secondary-action" onClick={onBack} type="button">← Quote List</button>
           <div className="qf2-bar-sep" />
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
+          <button className="qf2-others-bar-btn" onClick={() => setShowOthersPanel(true)} type="button">+ Add Others</button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
@@ -2906,9 +2908,6 @@ function QuoteWorkbench({
       {/* ── Tab bar ── */}
       <div className="qf2-tab-bar">
         <button className={`qf2-tab${activeQuoteTab === "lines" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("lines")} type="button">Lines</button>
-        <button className={`qf2-tab${activeQuoteTab === "others" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("others")} type="button">
-          Others {totalOthersCount > 0 && <span className="qf2-tab-badge">{totalOthersCount}</span>}
-        </button>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 14, gap: 8, fontSize: 11, color: "#889" }}>
           {lines.length > 0 && (
             <span>{lines.length} line{lines.length !== 1 ? "s" : ""} · {[...new Set(lines.map(l => l.material))].join(", ")}</span>
@@ -2928,125 +2927,157 @@ function QuoteWorkbench({
               <th style={{ textAlign: "right" }}>Qty</th>
               <th style={{ textAlign: "right" }}>Matrl $</th>
               <th style={{ textAlign: "right" }}>Rate $</th>
+              <th style={{ textAlign: "right" }}>Others $</th>
               <th style={{ textAlign: "right" }}>Total $</th>
               <th>Status</th>
-              <th style={{ width: 64 }}></th>
+              <th style={{ width: 80 }}></th>
             </tr>
           </thead>
           <tbody>
-            {lines.map((line, index) => (
-              <tr
-                aria-current={selectedLineIndex === index ? "true" : undefined}
-                className={selectedLineIndex === index ? "qf2-row-selected" : ""}
-                key={`${line.part}-${index}`}
-                onClick={() => setSelectedLineIndex(index)}
-              >
-                <td style={{ color: "#aaa", fontSize: 11 }}>{index}</td>
-                <td>
-                  <div className="qf2-line-desc">{line.part}</div>
-                  <div className="qf2-line-sub">Prog. {1372916 + index} · CC</div>
-                </td>
-                <td>{line.thickness.replace(" mm", "")}</td>
-                <td><span className="qf2-mat-tag">{line.material}</span></td>
-                <td style={{ textAlign: "right" }}>{line.qty}</td>
-                <td style={{ textAlign: "right" }}>{currency.format(line.costPerM2 ?? 0)}</td>
-                <td style={{ textAlign: "right" }}>{currency.format(line.cut)}</td>
-                <td style={{ textAlign: "right", fontWeight: 600 }}>{currency.format(line.total)}</td>
-                <td>{(() => {
-                  const s = lineStatuses[index] ?? "Q";
-                  return (
-                    <select
-                      value={s}
-                      onClick={e => e.stopPropagation()}
-                      onChange={e => { e.stopPropagation(); setLineStatuses(prev => ({ ...prev, [index]: e.target.value })); }}
-                      className="qf2-status-sel"
-                      style={{ background: lineStatusColor[s] ?? "#555" }}
-                    >
-                      {LINE_STATUSES.map(o => <option key={o.value} value={o.value} style={{ background: "#fff", color: "#333" }}>{o.value}</option>)}
-                    </select>
-                  );
-                })()}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <button className="qf2-act-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
-                  <button className="qf2-act-btn qf2-act-del" onClick={(e) => { e.stopPropagation(); }} title="Delete" type="button">✕</button>
-                </td>
-              </tr>
-            ))}
+            {lines.map((line, index) => {
+              const lineOthersAmt = (lineOthers[index] ?? []).reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0);
+              const lineTotal = line.total + lineOthersAmt;
+              const othersCount = (lineOthers[index] ?? []).length;
+              const s = lineStatuses[index] ?? "Q";
+              return (
+                  <tr
+                    aria-current={selectedLineIndex === index ? "true" : undefined}
+                    className={selectedLineIndex === index ? "qf2-row-selected" : ""}
+                    key={`${line.part}-${index}`}
+                    onClick={() => setSelectedLineIndex(index)}
+                  >
+                    <td style={{ color: "#aaa", fontSize: 11 }}>{index + 1}</td>
+                    <td>
+                      <div className="qf2-line-desc">{line.part}</div>
+                      <div className="qf2-line-sub">Prog. {1372916 + index} · CC</div>
+                    </td>
+                    <td>{line.thickness.replace(" mm", "")}</td>
+                    <td><span className="qf2-mat-tag">{line.material}</span></td>
+                    <td style={{ textAlign: "right" }}>{line.qty}</td>
+                    <td style={{ textAlign: "right" }}>{currency.format(line.costPerM2 ?? 0)}</td>
+                    <td style={{ textAlign: "right" }}>{currency.format(line.cut)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      {lineOthersAmt > 0
+                        ? <span className="qf2-others-amt">{currency.format(lineOthersAmt)}</span>
+                        : <span className="qf2-others-empty">—</span>}
+                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 600 }}>{currency.format(lineTotal)}</td>
+                    <td>
+                      <select
+                        value={s}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => { e.stopPropagation(); setLineStatuses(prev => ({ ...prev, [index]: e.target.value })); }}
+                        className="qf2-status-sel"
+                        style={{ background: lineStatusColor[s] ?? "#555" }}
+                      >
+                        {LINE_STATUSES.map(o => <option key={o.value} value={o.value} style={{ background: "#fff", color: "#333" }}>{o.value}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button
+                        className={`qf2-act-btn qf2-others-btn${othersCount > 0 ? " qf2-others-btn-active" : ""}`}
+                        onClick={(e) => { e.stopPropagation(); setSelectedLineIndex(index); setShowOthersPanel(true); }}
+                        title="Others"
+                        type="button"
+                      >
+                        ⊕{othersCount > 0 ? ` ${othersCount}` : ""}
+                      </button>
+                      <button className="qf2-act-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
+                      <button className="qf2-act-btn qf2-act-del" onClick={(e) => { e.stopPropagation(); }} title="Delete" type="button">✕</button>
+                    </td>
+                  </tr>
+              );
+            })}
             {lines.length === 0 && (
-              <tr><td className="empty-table-cell" colSpan={10}>No line items yet — click + Add Line to begin.</td></tr>
+              <tr><td className="empty-table-cell" colSpan={11}>No line items yet — click + Add Line to begin.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
 
-      {/* ── Others tab ── */}
-      {activeQuoteTab === "others" && (
-        <div className="qf-tab-panel table-wrap">
-          <div className="qf-tab-panel-actions">
-            <button className="secondary-action" onClick={() => { addOtherRow(); }} type="button">+ Add Row</button>
-          </div>
-          <table className="qf-others-tbl" style={{ width: "100%" }}>
-            <thead>
-              <tr><th>Line</th><th>Category</th><th>Qty</th><th>Cost</th><th>%</th><th>Sales Each</th><th>Cost Total</th><th>Amount</th><th>Supplier</th><th>Staff</th><th>Ref.</th><th></th></tr>
-            </thead>
-            <tbody>
-              {allOthers.map((o) => {
-                const salesEach = o.cost * (1 + o.markupPct / 100);
-                const costTotal = o.cost * o.qty;
-                const amountTotal = salesEach * o.qty;
-                return (
-                  <tr key={o.id}>
-                    <td style={{ fontSize: 10, color: "#888", whiteSpace: "nowrap" }}>{o.lineLabel}</td>
-                    <td className="qf-others-cat-cell">
-                      <select className="qf-others-cat-input" onChange={(e) => updateOtherRow(o.id, "category", e.target.value)} value={o.category}>
-                        {["BENDING","FABRICATION","GALVANISING","PAINTING","PRESSING"].map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <input className="qf-others-desc-input" onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" value={o.description} />
-                    </td>
-                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} type="number" value={o.qty} /></td>
-                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} type="number" value={o.cost} /></td>
-                    <td><input className="qf-num-input" onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} type="number" value={o.markupPct} /></td>
-                    <td style={{ textAlign: "right" }}>{salesEach.toFixed(2)}</td>
-                    <td style={{ textAlign: "right" }}>{costTotal.toFixed(2)}</td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>{amountTotal.toFixed(2)}</td>
-                    <td>{(() => {
-                      const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
-                      return (
-                        <select className="qf-others-text-input" value={o.supplier} onChange={(e) => updateOtherRow(o.id, "supplier", e.target.value)}>
-                          <option value="">— Supplier —</option>
-                          {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
-                        </select>
-                      );
-                    })()}</td>
-                    <td>{(() => {
-                      const supplierContact = contacts.find(c => c.company === o.supplier && splitContactTypes(c.kind).includes("Supplier"));
-                      const staffList = supplierContact?.staff ?? [];
-                      return (
-                        <select className="qf-others-text-input" value={o.staff} onChange={(e) => updateOtherRow(o.id, "staff", e.target.value)}>
-                          <option value="">— Staff —</option>
-                          {staffList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                        </select>
-                      );
-                    })()}</td>
-                    <td><input className="qf-others-text-input" onChange={(e) => updateOtherRow(o.id, "ref", e.target.value)} placeholder="REFERENCE" value={o.ref} /></td>
-                    <td><button className="qf-others-del" onClick={() => removeOtherRow(o.id)} title="Remove" type="button">✕</button></td>
-                  </tr>
-                );
-              })}
-              {allOthers.length === 0 && <tr className="qf-others-placeholder"><td colSpan={12}>No others yet — select a line and click + Add Row</td></tr>}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={6} style={{ textAlign: "right", fontWeight: 700, padding: "6px 8px" }}>Totals:</td>
-                <td style={{ fontWeight: 700, background: "#d4b8e0", textAlign: "right", padding: "6px 8px" }}>{currency.format(allOthers.reduce((s,o) => s + o.cost*o.qty, 0))}</td>
-                <td style={{ fontWeight: 700, background: "#d4b8e0", textAlign: "right", padding: "6px 8px" }}>{currency.format(allOthers.reduce((s,o) => s + o.cost*o.qty*(1+o.markupPct/100), 0))}</td>
-                <td colSpan={4}></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+      {/* ── Others side panel ── */}
+      {showOthersPanel && (
+        <div className="qf-others-overlay" onClick={() => setShowOthersPanel(false)} />
       )}
+      <div className={`qf-others-panel${showOthersPanel ? " qf-others-panel--open" : ""}`}>
+        <div className="qf-others-panel-head">
+          <div>
+            <div className="qf-others-panel-title">Others</div>
+            {lines[selectedLineIndex] && (
+              <div className="qf-others-panel-sub">Line {selectedLineIndex + 1}: {lines[selectedLineIndex].part}</div>
+            )}
+          </div>
+          <button className="qf-others-panel-close" onClick={() => setShowOthersPanel(false)} type="button">✕</button>
+        </div>
+
+        {/* Line selector */}
+        {lines.length > 1 && (
+          <div style={{ padding: "8px 16px", borderBottom: "1px solid #e3e8ee" }}>
+            <select
+              style={{ width: "100%", font: "inherit", fontSize: 12, padding: "4px 6px", border: "1px solid #dde3ea", borderRadius: 4 }}
+              value={selectedLineIndex}
+              onChange={e => setSelectedLineIndex(Number(e.target.value))}
+            >
+              {lines.map((l, i) => <option key={i} value={i}>Line {i + 1}: {l.part}</option>)}
+            </select>
+          </div>
+        )}
+
+        <div className="qf-others-panel-actions">
+          <button className="primary-action" onClick={addOtherRow} type="button">+ Add Row</button>
+        </div>
+
+        <div className="qf-others-panel-body">
+          {(lineOthers[selectedLineIndex] ?? []).length === 0 ? (
+            <div className="qf-others-panel-empty">No others for this line yet.<br />Click + Add Row to begin.</div>
+          ) : (
+            <table className="qf-op-tbl">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: "right" }}>Qty</th>
+                  <th style={{ textAlign: "right" }}>Cost $</th>
+                  <th style={{ textAlign: "right" }}>Markup %</th>
+                  <th style={{ textAlign: "right" }}>Amount $</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(lineOthers[selectedLineIndex] ?? []).map((o) => {
+                  const amount = o.cost * o.qty * (1 + o.markupPct / 100);
+                  const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
+                  return (
+                    <tr key={o.id}>
+                      <td>
+                        <select className="qf-op-sel" value={o.category} onChange={(e) => updateOtherRow(o.id, "category", e.target.value)}>
+                          {["BENDING","CONSUMABLES","FABRICATION","FREIGHT","GALVANISING","PAINTING","PRESSING","PUNCHING","OTHER"].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </td>
+                      <td><input className="qf-op-inp" value={o.description} onChange={(e) => updateOtherRow(o.id, "description", e.target.value)} placeholder="Description" /></td>
+                      <td><input className="qf-op-num" type="number" value={o.qty} onChange={(e) => updateOtherRow(o.id, "qty", Number(e.target.value))} /></td>
+                      <td><input className="qf-op-num" type="number" value={o.cost} onChange={(e) => updateOtherRow(o.id, "cost", Number(e.target.value))} /></td>
+                      <td><input className="qf-op-num" type="number" value={o.markupPct} onChange={(e) => updateOtherRow(o.id, "markupPct", Number(e.target.value))} /></td>
+                      <td style={{ textAlign: "right", fontWeight: 600 }}>{currency.format(amount)}</td>
+                      <td><button className="qf2-act-btn qf2-act-del" onClick={() => removeOtherRow(o.id)} type="button">✕</button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="qf-op-foot">
+                  <td colSpan={5} style={{ textAlign: "right", fontWeight: 700, paddingRight: 10 }}>Line others total:</td>
+                  <td style={{ textAlign: "right", fontWeight: 700 }}>
+                    {currency.format((lineOthers[selectedLineIndex] ?? []).reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0))}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      </div>
 
       {/* ── Footer ── */}
       <div className="qf2-footer">
@@ -3060,11 +3091,22 @@ function QuoteWorkbench({
           <div style={{ marginTop: 8, fontSize: 11, color: "#889" }}>Quote valid for: <strong style={{ color: "#334" }}>30 days</strong></div>
         </div>
         <div className="qf2-totals">
-          <div className="qf2-trow"><span>Subtotal</span><span>{currency.format(quote.total)}</span></div>
-          <div className="qf2-trow"><span>Delivery</span><span>{currency.format(quote.delivery ?? 0)}</span></div>
-          <div className="qf2-trow"><span>Total del. inc.</span><span>{currency.format(quote.total + (quote.delivery ?? 0))}</span></div>
-          <div className="qf2-trow"><span>GST (10%)</span><span>{currency.format(gst)}</span></div>
-          <div className="qf2-trow qf2-trow-grand"><span>Total GST inc.</span><span>{currency.format(totalIncGst)}</span></div>
+          {(() => {
+            const allOthersTotal = Object.values(lineOthers).flat().reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0);
+            const linesTotal = lines.reduce((s, l) => s + l.total, 0);
+            const subtotalWithOthers = linesTotal + allOthersTotal;
+            const deliveryAmt = quote.delivery ?? 0;
+            const gstWithOthers = (subtotalWithOthers + deliveryAmt) * 0.1;
+            const grandTotal = subtotalWithOthers + deliveryAmt + gstWithOthers;
+            return (<>
+              <div className="qf2-trow"><span>Cutting / Material</span><span>{currency.format(linesTotal)}</span></div>
+              {allOthersTotal > 0 && <div className="qf2-trow"><span>Others</span><span>{currency.format(allOthersTotal)}</span></div>}
+              <div className="qf2-trow"><span>Subtotal</span><span>{currency.format(subtotalWithOthers)}</span></div>
+              <div className="qf2-trow"><span>Delivery</span><span>{currency.format(deliveryAmt)}</span></div>
+              <div className="qf2-trow"><span>GST (10%)</span><span>{currency.format(gstWithOthers)}</span></div>
+              <div className="qf2-trow qf2-trow-grand"><span>Total GST inc.</span><span>{currency.format(grandTotal)}</span></div>
+            </>);
+          })()}
         </div>
       </div>
       {showPrint && (

@@ -2570,3 +2570,72 @@ td {
 .pv2-doc-status { display: inline-block; color: #fff; font-size: 7.5pt; font-weight: 800; padding: 2px 8px; border-radius: 3px; margin-top: 4px; letter-spacing: 0.5px; }
 .pv2-parties-tbl { width: 100%; border-collapse: collapse; border: 1px solid #dde; font-size: 9pt; line-height: 1.7; }
 .pv2-party-cell { padding: 8px 12px; vertical-align: top; }
+
+/* ══════════════════════════════════════════════════════════════════
+   OTHERS SIDE PANEL
+   ══════════════════════════════════════════════════════════════════ */
+
+.qf2-others-bar-btn {
+  background: #6a3d9a; color: #fff; border: none; font-size: 11px;
+  font-weight: 700; padding: 5px 12px; cursor: pointer; border-radius: 3px;
+  white-space: nowrap;
+}
+.qf2-others-bar-btn:hover { background: #512d75; }
+
+.qf2-others-amt { color: #6a3d9a; font-weight: 600; }
+.qf2-others-empty { color: #ccc; }
+
+.qf2-others-btn { font-size: 13px; color: #999; }
+.qf2-others-btn-active { color: #6a3d9a !important; font-weight: 700; }
+
+/* Overlay */
+.qf-others-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.15); z-index: 200;
+}
+
+/* Side panel */
+.qf-others-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 600px;
+  background: #fff; border-left: 1px solid #e3e8ee;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+  z-index: 201;
+}
+.qf-others-panel--open { transform: translateX(0); }
+
+.qf-others-panel-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 16px 18px; border-bottom: 1px solid #e3e8ee; flex-shrink: 0;
+}
+.qf-others-panel-title { font-size: 15px; font-weight: 700; color: #1b2030; }
+.qf-others-panel-sub { font-size: 11px; color: #6a3d9a; font-weight: 600; margin-top: 2px; max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qf-others-panel-close {
+  background: transparent; border: none; font-size: 18px; color: #889;
+  cursor: pointer; padding: 0 0 0 12px; line-height: 1;
+}
+.qf-others-panel-close:hover { color: #334; }
+
+.qf-others-panel-actions {
+  padding: 10px 16px; border-bottom: 1px solid #e3e8ee; flex-shrink: 0;
+}
+
+.qf-others-panel-body { flex: 1; overflow-y: auto; }
+
+.qf-others-panel-empty {
+  padding: 40px 20px; text-align: center; color: #aaa; font-size: 13px; line-height: 1.7;
+}
+
+/* Panel table */
+.qf-op-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.qf-op-tbl th {
+  background: #f4f6f9; color: #889; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.4px; padding: 7px 10px; text-align: left;
+  position: sticky; top: 0;
+}
+.qf-op-tbl td { padding: 7px 10px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
+.qf-op-sel { width: 100%; border: 1px solid #dde3ea; border-radius: 3px; font: inherit; font-size: 11px; padding: 3px 4px; background: #fff; }
+.qf-op-inp { width: 100%; border: 1px solid #dde3ea; border-radius: 3px; font: inherit; font-size: 12px; padding: 3px 6px; }
+.qf-op-num { width: 72px; border: 1px solid #dde3ea; border-radius: 3px; font: inherit; font-size: 12px; padding: 3px 6px; text-align: right; }
+.qf-op-foot td { background: #f8f9fb; padding: 8px 10px; border-top: 1.5px solid #e3e8ee; font-size: 12px; }
