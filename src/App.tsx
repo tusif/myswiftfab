@@ -599,6 +599,11 @@ const currency = new Intl.NumberFormat("en-AU", {
   style: "currency",
 });
 
+const STATUS_COLOR: Record<string, string> = {
+  approved: "#3a7d2a", sent: "#b87a00", draft: "#555", review: "#a04000",
+  inactive: "#999", lost: "#c0392b", pending: "#b87a00", internal: "#555",
+};
+
 export function App() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [contactTypes, setContactTypes] = useState<ContactTypeOption[]>(defaultContactTypes);
@@ -2661,10 +2666,7 @@ function QuoteWorkbench({
   };
 
   const [quoteStatus, setQuoteStatus] = useState(quote.status);
-  const statusColor: Record<string, string> = {
-    approved: "#3a7d2a", sent: "#b87a00", draft: "#555", review: "#a04000", inactive: "#999", lost: "#c0392b", pending: "#b87a00", internal: "#555",
-  };
-  const statusBg = statusColor[quoteStatus.toLowerCase()] ?? "#555";
+  const statusBg = STATUS_COLOR[quoteStatus.toLowerCase()] ?? "#555";
   const statusOptions = ["Approved", "InActive", "Internal", "Lost", "Pending", "Sent", "Draft", "Review"];
 
   return (
@@ -3067,7 +3069,14 @@ function QuoteWorkbench({
       </div>
       {showPrint && (
         <div className="print-only">
-          <QuotePrintView quote={quote} lines={lines} bizProfile={bizProfile} quoteComments={quoteComments} />
+          <QuotePrintView
+            quote={{ ...quote, client: selectedClientName || quote.client, contact: selectedStaffName || quote.contact }}
+            lines={lines}
+            bizProfile={bizProfile}
+            quoteComments={quoteComments}
+            quoteStatus={quoteStatus}
+            deliveryAddress=""
+          />
         </div>
       )}
     </article>
@@ -3076,11 +3085,13 @@ function QuoteWorkbench({
 
 // ── Quote Print Layout ────────────────────────────────────────────────────────
 
-function QuotePrintView({ quote, lines, bizProfile, quoteComments }: {
+function QuotePrintView({ quote, lines, bizProfile, quoteComments, quoteStatus, deliveryAddress }: {
   quote: QuoteRecord;
   lines: QuoteLine[];
   bizProfile: BusinessProfile;
   quoteComments: string;
+  quoteStatus: string;
+  deliveryAddress: string;
 }) {
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
   const delivery = quote.delivery ?? 0;
@@ -3100,35 +3111,46 @@ function QuotePrintView({ quote, lines, bizProfile, quoteComments }: {
 
   const Header = () => (
     <div className="pv2-header">
+      {/* Top strip: logo left, QUOTATION right */}
       <div className="pv2-header-top">
         <div className="pv2-logo-area">
           {bizProfile.logoBase64
             ? <img src={bizProfile.logoBase64} alt="Logo" className="pv2-logo" />
-            : <div className="pv2-biz-name">{bizProfile.name}</div>}
+            : <div className="pv2-biz-name">{bizProfile.name || "MySwiftFab"}</div>}
           {bizProfile.tagline && <div className="pv2-tagline">{bizProfile.tagline}</div>}
         </div>
         <div className="pv2-doc-title">
           <div className="pv2-doc-label">QUOTATION</div>
-          <div className="pv2-doc-no">{quote.quote}</div>
+          <div className="pv2-doc-no">#{quote.quote}</div>
           <div className="pv2-doc-date">{quoteDate}</div>
+          <div className="pv2-doc-status" style={{ background: STATUS_COLOR[quoteStatus?.toLowerCase()] ?? "#555" }}>{quoteStatus || "Draft"}</div>
         </div>
       </div>
-      <div className="pv2-parties">
-        <div className="pv2-party">
-          <div className="pv2-party-label">FROM</div>
-          <div className="pv2-party-name">{bizProfile.name}</div>
-          {bizProfile.address && <div>{bizProfile.address}</div>}
-          {bizProfile.poBox && <div>{bizProfile.poBox}</div>}
-          {bizProfile.phone && <div>Ph: {bizProfile.phone}</div>}
-          {bizProfile.email && <div>{bizProfile.email}</div>}
-          {bizProfile.abn && <div>ABN: {bizProfile.abn}</div>}
-        </div>
-        <div className="pv2-party">
-          <div className="pv2-party-label">TO</div>
-          <div className="pv2-party-name">{quote.client}</div>
-          {quote.contact && <div>Attn: {quote.contact}</div>}
-        </div>
-      </div>
+
+      {/* FROM / TO grid */}
+      <table className="pv2-parties-tbl">
+        <tbody>
+          <tr>
+            <td className="pv2-party-cell" style={{ width: "50%", borderRight: "1px solid #dde" }}>
+              <div className="pv2-party-label">FROM</div>
+              <div className="pv2-party-name">{bizProfile.name || "—"}</div>
+              {bizProfile.address && <div>{bizProfile.address}</div>}
+              {bizProfile.poBox && <div>{bizProfile.poBox}</div>}
+              {bizProfile.phone && <div>Ph: {bizProfile.phone}</div>}
+              {bizProfile.email && <div>{bizProfile.email}</div>}
+              {bizProfile.abn && <div>ABN: {bizProfile.abn}</div>}
+            </td>
+            <td className="pv2-party-cell" style={{ width: "50%" }}>
+              <div className="pv2-party-label">TO</div>
+              <div className="pv2-party-name">{quote.client || "—"}</div>
+              {quote.contact && <div>Attn: {quote.contact}</div>}
+              {deliveryAddress && <div style={{ marginTop: 4 }}>{deliveryAddress}</div>}
+              {bizProfile.validity && <div style={{ marginTop: 6, fontSize: "8pt", color: "#778" }}>Valid for: {bizProfile.validity}</div>}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
       {quoteComments && (
         <div className="pv2-notes-bar">
           <strong>Notes:&nbsp;</strong>{quoteComments}

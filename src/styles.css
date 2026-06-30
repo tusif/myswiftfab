@@ -2565,3 +2565,8 @@ td {
   background: #153f4d; border: none;
 }
 .qf2-trow-grand span { color: #e8f0f4 !important; font-weight: 700 !important; font-size: 13px !important; }
+
+/* Print view extras */
+.pv2-doc-status { display: inline-block; color: #fff; font-size: 7.5pt; font-weight: 800; padding: 2px 8px; border-radius: 3px; margin-top: 4px; letter-spacing: 0.5px; }
+.pv2-parties-tbl { width: 100%; border-collapse: collapse; border: 1px solid #dde; font-size: 9pt; line-height: 1.7; }
+.pv2-party-cell { padding: 8px 12px; vertical-align: top; }
