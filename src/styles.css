@@ -280,6 +280,10 @@ h3 {
   overflow: hidden;
 }
 
+.customer-detail-panel {
+  overflow-y: auto;
+}
+
 .quote-panel.compact {
   align-self: start;
 }
