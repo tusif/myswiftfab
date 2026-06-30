@@ -8,6 +8,7 @@ import {
   Factory,
   FileText,
   Gauge,
+  Inbox,
   PackageCheck,
   Plus,
   Search,
@@ -19,7 +20,7 @@ import {
 import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { materialRates, type MaterialRate } from "./materialRates";
 
-type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "settings";
+type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "requests" | "settings";
 
 type Module = {
   id: PageId;
@@ -172,6 +173,7 @@ const modules: Module[] = [
   { id: "materials", title: "Materials", description: "Material library and cutting rates", icon: Factory },
   { id: "purchases", title: "Purchases", description: "Material orders and purchase orders", icon: ShoppingCart },
   { id: "invoices", title: "Invoices", description: "Accounts, GST totals, and MYOB references", icon: BarChart3 },
+  { id: "requests", title: "Requests", description: "Client portal quote requests", icon: Inbox },
   { id: "settings", title: "Settings", description: "Integrations, API access, and account configuration", icon: Settings },
 ];
 
@@ -653,6 +655,7 @@ export function App() {
         {activePage === "materials" && <MaterialsPage />}
         {activePage === "purchases" && <PurchasesPage />}
         {activePage === "invoices" && <InvoicesPage />}
+        {activePage === "requests" && <PortalRequestsPage onGoToQuotes={() => setActivePage("quotes")} />}
         {activePage === "settings" && <SettingsPage contactTypes={contactTypes} onContactTypesChange={setContactTypes} successorOptions={successorOptions} onSuccessorOptionsChange={saveSuccessorOptions} bizProfile={bizProfile} onBizProfileChange={saveBizProfile} />}
       </section>
     </main>
@@ -1763,6 +1766,296 @@ function InvoicesPage() {
         ])}
       />
     </PagePanel>
+  );
+}
+
+// ── Portal Requests Page ──────────────────────────────────────────────────
+
+type PortalRequest = {
+  id: string;
+  created_at: string;
+  client_email: string;
+  client_name: string | null;
+  file_name: string;
+  plate_width: number;
+  plate_height: number;
+  cut_length: number;
+  pierce_count: number;
+  holes: { dia: number; qty: number }[];
+  material: string;
+  thickness: string;
+  qty: number;
+  notes: string;
+  status: "pending" | "reviewed" | "quoted" | "rejected";
+  staff_notes: string | null;
+};
+
+function PortalRequestsPage({ onGoToQuotes }: { onGoToQuotes: () => void }) {
+  const [requests, setRequests] = useState<PortalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<PortalRequest | null>(null);
+  const [filter, setFilter] = useState<"all" | "pending" | "reviewed" | "quoted" | "rejected">("all");
+  const [staffNotes, setStaffNotes] = useState("");
+  const [converting, setConverting] = useState(false);
+  const [convertMsg, setConvertMsg] = useState("");
+
+  const fetchRequests = async () => {
+    if (!supabase) { setLoading(false); return; }
+    setLoading(true);
+    const { data } = await supabase
+      .from("portal_quotes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setRequests((data ?? []) as PortalRequest[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    if (!supabase) return;
+    const channel = supabase
+      .channel("portal-requests")
+      .on("postgres_changes", { event: "*", schema: "public", table: "portal_quotes" }, fetchRequests)
+      .subscribe();
+    return () => { supabase?.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    if (selected) setStaffNotes(selected.staff_notes ?? "");
+  }, [selected?.id]);
+
+  const updateStatus = async (req: PortalRequest, status: PortalRequest["status"]) => {
+    if (!supabase) return;
+    await supabase.from("portal_quotes").update({ status, staff_notes: staffNotes }).eq("id", req.id);
+    setSelected(s => s ? { ...s, status, staff_notes: staffNotes } : s);
+    fetchRequests();
+  };
+
+  const convertToQuote = async (req: PortalRequest) => {
+    if (!supabase) return;
+    setConverting(true);
+    setConvertMsg("");
+
+    // Find matching material rate
+    const rate = materialRates.find(r =>
+      r.material.toLowerCase().includes(req.material.toLowerCase()) &&
+      Math.abs((r.thickness ?? 0) - parseFloat(req.thickness)) < 0.1
+    );
+
+    const cutRatePerM = rate?.cutRate ?? 5;
+    const costPerM2 = rate?.costPerM2 ?? 0;
+    const cutLengthM = req.cut_length / 1000;
+    const plateM2 = (req.plate_width / 1000) * (req.plate_height / 1000);
+    const materialCost = plateM2 * costPerM2 * req.qty;
+    const cuttingCost = cutLengthM * cutRatePerM * req.qty;
+    const piercing = (req.pierce_count ?? 0) * 0.20;
+    const total = materialCost + cuttingCost + piercing;
+
+    const newQuoteId = `PQ-${Date.now()}`;
+    const { error } = await supabase.from("portal_quotes").update({
+      status: "quoted",
+      staff_notes: staffNotes,
+    }).eq("id", req.id);
+
+    if (error) { setConvertMsg(`Error: ${error.message}`); setConverting(false); return; }
+
+    // Save to localStorage so QuotesPage picks it up
+    const LS_QUOTES = "msf_quotes";
+    const existingQuotes: QuoteRecord[] = JSON.parse(localStorage.getItem(LS_QUOTES) ?? "[]");
+    const newQuote: QuoteRecord = {
+      quote: newQuoteId,
+      client: req.client_email,
+      contact: req.client_name ?? req.client_email,
+      status: "Q",
+      lines: 1,
+      total,
+      margin: "30%",
+      date: new Date().toISOString().slice(0, 10),
+    };
+    localStorage.setItem(LS_QUOTES, JSON.stringify([newQuote, ...existingQuotes]));
+
+    const LS_LINES = "msf_quote_lines";
+    const existingLines: Record<string, QuoteLine[]> = JSON.parse(localStorage.getItem(LS_LINES) ?? "{}");
+    const newLine: QuoteLine = {
+      part: `PLATE ${req.plate_width} x ${req.plate_height}${req.holes?.length > 0 ? " WITH HOLES" : ""}`,
+      material: req.material,
+      thickness: req.thickness,
+      qty: req.qty,
+      cut: cuttingCost / req.qty,
+      pierce: piercing / req.qty,
+      total,
+      costPerM2,
+      predecessor: "Plate",
+      side1: req.plate_width,
+      side2: req.plate_height,
+    };
+    localStorage.setItem(LS_LINES, JSON.stringify({ ...existingLines, [newQuoteId]: [newLine] }));
+
+    setConverting(false);
+    setConvertMsg(`✅ Quote ${newQuoteId} created!`);
+    setSelected(s => s ? { ...s, status: "quoted" } : s);
+    fetchRequests();
+    setTimeout(() => { onGoToQuotes(); }, 1200);
+  };
+
+  const filtered = filter === "all" ? requests : requests.filter(r => r.status === filter);
+  const pendingCount = requests.filter(r => r.status === "pending").length;
+
+  if (!supabase) {
+    return (
+      <div style={{ padding: 32, color: "#888", textAlign: "center", gridColumn: "1 / -1" }}>
+        Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local
+      </div>
+    );
+  }
+
+  return (
+    <section className="customer-workspace">
+      {/* Left: request list */}
+      <article className="customer-list-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Portal</p>
+            <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Requests {pendingCount > 0 && <span className="req-badge">{pendingCount} new</span>}
+            </h2>
+          </div>
+        </div>
+        <div className="req-filter-bar">
+          {(["all","pending","reviewed","quoted","rejected"] as const).map(f => (
+            <button key={f} className={`req-filter-btn${filter === f ? " req-filter-btn--active" : ""}`} onClick={() => setFilter(f)} type="button">
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+        {loading ? (
+          <div style={{ padding: 24, color: "#888", textAlign: "center" }}>Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: 32, color: "#aaa", textAlign: "center", fontSize: 13 }}>No {filter === "all" ? "" : filter} requests</div>
+        ) : (
+          <div className="customer-list">
+            {filtered.map(req => (
+              <button
+                key={req.id}
+                className={`customer-list-item${selected?.id === req.id ? " req-selected" : ""}`}
+                onClick={() => setSelected(req)}
+                type="button"
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <span className="customer-name" style={{ fontSize: 12 }}>{req.client_email}</span>
+                  <span className={`req-status-pill req-status-pill--${req.status}`}>{req.status}</span>
+                </div>
+                <span style={{ fontSize: 11, color: "#667" }}>{req.file_name}</span>
+                <span style={{ fontSize: 11, color: "#999" }}>{new Date(req.created_at).toLocaleDateString("en-AU", { day:"2-digit", month:"short", year:"numeric" })}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </article>
+
+      {/* Right: detail panel */}
+      <article className="customer-detail-panel">
+        {!selected ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#aaa", fontSize: 14 }}>
+            Select a request to review
+          </div>
+        ) : (
+          <div className="req-detail">
+            <div className="req-detail-header">
+              <div>
+                <p className="eyebrow">Portal Request</p>
+                <h2 style={{ fontSize: 16, margin: "4px 0 2px" }}>{selected.file_name}</h2>
+                <div style={{ fontSize: 12, color: "#667" }}>{selected.client_email} · {new Date(selected.created_at).toLocaleString("en-AU")}</div>
+              </div>
+              <span className={`req-status-pill req-status-pill--${selected.status}`} style={{ fontSize: 12 }}>{selected.status.toUpperCase()}</span>
+            </div>
+
+            {/* DXF analysis results */}
+            <div className="req-analysis-grid">
+              <div className="req-metric"><span>Plate Size</span><strong>{selected.plate_width} × {selected.plate_height} mm</strong></div>
+              <div className="req-metric"><span>Cut Length</span><strong>{(selected.cut_length / 1000).toFixed(2)} m</strong></div>
+              <div className="req-metric"><span>Pierces</span><strong>{selected.pierce_count}</strong></div>
+              <div className="req-metric"><span>Material</span><strong>{selected.material}</strong></div>
+              <div className="req-metric"><span>Thickness</span><strong>{selected.thickness} mm</strong></div>
+              <div className="req-metric"><span>Qty</span><strong>{selected.qty}</strong></div>
+              {selected.holes?.length > 0 && (
+                <div className="req-metric" style={{ gridColumn: "1 / -1" }}>
+                  <span>Detected Holes</span>
+                  <strong>{selected.holes.map(h => `${h.qty}× Ø${h.dia}mm`).join("  ·  ")}</strong>
+                </div>
+              )}
+            </div>
+
+            {/* Cost estimate */}
+            <div className="req-cost-estimate">
+              <div className="req-cost-title">Estimated Cost (from material rates)</div>
+              {(() => {
+                const rate = materialRates.find(r =>
+                  r.material.toLowerCase().includes(selected.material.toLowerCase()) &&
+                  Math.abs((r.thickness ?? 0) - parseFloat(selected.thickness)) < 0.1
+                );
+                const cutRate = rate?.cutRate ?? 5;
+                const m2Rate = rate?.costPerM2 ?? 0;
+                const cutM = selected.cut_length / 1000;
+                const plateM2 = (selected.plate_width / 1000) * (selected.plate_height / 1000);
+                const matCost = plateM2 * m2Rate * selected.qty;
+                const cutCost = cutM * cutRate * selected.qty;
+                const piercing = (selected.pierce_count ?? 0) * 0.20;
+                const total = matCost + cutCost + piercing;
+                return (
+                  <div className="req-cost-rows">
+                    <div><span>Material ({m2Rate > 0 ? `$${m2Rate}/m²` : "rate not found"})</span><span>{currency.format(matCost)}</span></div>
+                    <div><span>Cutting ({cutM.toFixed(2)}m × ${cutRate}/m)</span><span>{currency.format(cutCost)}</span></div>
+                    <div><span>Piercing ({selected.pierce_count} × $0.20)</span><span>{currency.format(piercing)}</span></div>
+                    <div className="req-cost-total"><span>Estimated Total</span><span>{currency.format(total)}</span></div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Client notes */}
+            {selected.notes && (
+              <div className="req-client-notes">
+                <div className="req-section-label">Client Notes</div>
+                <div style={{ fontSize: 13, color: "#334", lineHeight: 1.5 }}>{selected.notes}</div>
+              </div>
+            )}
+
+            {/* Staff notes */}
+            <div style={{ padding: "0 20px 12px" }}>
+              <div className="req-section-label">Staff Notes</div>
+              <textarea
+                className="req-staff-notes"
+                placeholder="Add internal notes about this request…"
+                rows={3}
+                value={staffNotes}
+                onChange={e => setStaffNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Actions */}
+            {convertMsg && <div className="req-convert-msg">{convertMsg}</div>}
+            <div className="req-actions">
+              {selected.status === "pending" && (
+                <button className="secondary-action" onClick={() => updateStatus(selected, "reviewed")} type="button">Mark Reviewed</button>
+              )}
+              {selected.status !== "rejected" && selected.status !== "quoted" && (
+                <button className="secondary-action req-reject-btn" onClick={() => updateStatus(selected, "rejected")} type="button">Reject</button>
+              )}
+              <button
+                className="primary-action"
+                disabled={converting || selected.status === "quoted"}
+                onClick={() => convertToQuote(selected)}
+                style={{ marginLeft: "auto" }}
+                type="button"
+              >
+                {converting ? "Creating Quote…" : selected.status === "quoted" ? "✓ Quote Created" : "Convert to Quote →"}
+              </button>
+            </div>
+          </div>
+        )}
+      </article>
+    </section>
   );
 }
 

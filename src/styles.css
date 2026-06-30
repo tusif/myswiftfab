@@ -2344,3 +2344,79 @@ td {
 .portal-invite-msg { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 5px; }
 .portal-invite-msg--sent { background: #d4edda; color: #155724; }
 .portal-invite-msg--error { background: #f8d7da; color: #721c24; }
+
+/* ══════════════════════════════════════════════════════════════════
+   PORTAL REQUESTS PAGE (staff inbox)
+   ══════════════════════════════════════════════════════════════════ */
+
+.req-badge {
+  background: #f57c20; color: #fff; border-radius: 999px;
+  font-size: 11px; font-weight: 800; padding: 2px 8px;
+}
+
+.req-filter-bar {
+  display: flex; gap: 6px; padding: 10px 14px; border-bottom: 1px solid #eee;
+  flex-wrap: wrap;
+}
+
+.req-filter-btn {
+  background: #f5f7fa; border: 1px solid #dde3ea; border-radius: 20px;
+  color: #556; cursor: pointer; font-size: 11px; font-weight: 700;
+  padding: 4px 12px; white-space: nowrap;
+}
+.req-filter-btn--active { background: #153f4d; border-color: #153f4d; color: #fff; }
+.req-filter-btn:hover:not(.req-filter-btn--active) { background: #e8edf2; }
+
+.req-selected { background: #f0f8ff !important; border-left: 3px solid #f57c20 !important; }
+
+.req-status-pill {
+  font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+}
+.req-status-pill--pending  { background: #fff3cd; color: #856404; }
+.req-status-pill--reviewed { background: #cce5ff; color: #004085; }
+.req-status-pill--quoted   { background: #d4edda; color: #155724; }
+.req-status-pill--rejected { background: #f8d7da; color: #721c24; }
+
+.req-detail { display: flex; flex-direction: column; height: 100%; overflow-y: auto; }
+
+.req-detail-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 18px 20px; border-bottom: 1px solid #eee; background: #fafbfc;
+}
+
+.req-analysis-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: #e3e8ee; border-top: none; margin: 0;
+}
+.req-metric {
+  background: #fff; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px;
+}
+.req-metric span { font-size: 10px; font-weight: 800; color: #778; text-transform: uppercase; }
+.req-metric strong { font-size: 15px; font-weight: 800; color: #1b2030; }
+
+.req-cost-estimate { margin: 16px 20px 0; border: 1px solid #dde3ea; border-radius: 8px; overflow: hidden; }
+.req-cost-title { background: #f5f7fa; padding: 9px 14px; font-size: 11px; font-weight: 800; color: #556; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #eee; }
+.req-cost-rows { padding: 4px 0; }
+.req-cost-rows > div { display: flex; justify-content: space-between; padding: 7px 14px; font-size: 12px; color: #445; }
+.req-cost-rows > div span:last-child { font-weight: 700; }
+.req-cost-total { border-top: 2px solid #dde3ea; font-weight: 800 !important; font-size: 13px !important; padding-top: 10px !important; }
+.req-cost-total span { color: #1b2030 !important; }
+
+.req-client-notes { margin: 14px 20px 0; padding: 12px 14px; background: #fffbf5; border: 1px solid #f5ddb0; border-radius: 7px; }
+.req-section-label { font-size: 10px; font-weight: 800; color: #778; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+
+.req-staff-notes {
+  width: 100%; border: 1px solid #cdd3da; border-radius: 6px; padding: 9px 12px;
+  font: inherit; font-size: 13px; resize: vertical; margin-top: 4px;
+}
+.req-staff-notes:focus { border-color: #f57c20; box-shadow: 0 0 0 2px #f57c2022; outline: none; }
+
+.req-convert-msg { margin: 0 20px 8px; padding: 8px 12px; background: #d4edda; color: #155724; border-radius: 6px; font-size: 13px; font-weight: 700; }
+.req-reject-btn { color: #c0392b !important; border-color: #f5c6cb !important; }
+.req-reject-btn:hover { background: #fdf2f2 !important; }
+
+.req-actions {
+  display: flex; gap: 10px; align-items: center; padding: 14px 20px;
+  border-top: 1px solid #eee; background: #fafbfc; margin-top: auto;
+}
