@@ -2379,6 +2379,16 @@ function QuoteWorkbench({
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
   const [lineHoles, setLineHoles] = useState<Record<number, HoleRow[]>>({});
   const [showPrint, setShowPrint] = useState(false);
+  useEffect(() => {
+    if (!showPrint) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        setShowPrint(false);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [showPrint]);
   const [dxfLoading, setDxfLoading] = useState(false);
   const [dxfFileName, setDxfFileName] = useState("");
   const dxfInputRef = useRef<HTMLInputElement>(null);
@@ -2670,7 +2680,7 @@ function QuoteWorkbench({
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
             </button>
           )}
-          <button className="qf-print-btn" onClick={() => { setShowPrint(true); setTimeout(() => { window.print(); setShowPrint(false); }, 100); }} type="button">🖨 Print / PDF</button>
+          <button className="qf-print-btn" onClick={() => setShowPrint(true)} type="button">🖨 Print / PDF</button>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16, fontSize: 13 }}>
             <span style={{ color: "#889", fontSize: 11 }}>QUOTE</span>
             <strong style={{ fontSize: 14 }}>{quote.quote}</strong>
@@ -3072,132 +3082,139 @@ function QuotePrintView({ quote, lines, bizProfile, quoteComments }: {
   bizProfile: BusinessProfile;
   quoteComments: string;
 }) {
-  const gstRate = 0.1;
   const subtotal = lines.reduce((s, l) => s + l.total, 0);
-  const gst = subtotal * gstRate;
-  const total = subtotal + gst;
+  const delivery = quote.delivery ?? 0;
+  const gst = (subtotal + delivery) * 0.1;
+  const grandTotal = subtotal + delivery + gst;
   const totalQty = lines.reduce((s, l) => s + l.qty, 0);
   const printDate = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const quoteDate = quote.date ? new Date(quote.date).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : printDate;
+  const quoteDate = quote.date
+    ? new Date(quote.date).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })
+    : printDate;
 
-  const ROWS_PER_PAGE = 13;
+  const ROWS_PER_PAGE = 15;
   const pages: QuoteLine[][] = [];
   for (let i = 0; i < lines.length; i += ROWS_PER_PAGE) pages.push(lines.slice(i, i + ROWS_PER_PAGE));
   if (pages.length === 0) pages.push([]);
-  const totalPages = pages.length + 1; // +1 for comments page
+  const totalPages = pages.length + 1;
 
-  const PrintHeader = () => (
-    <div className="pv-header">
-      {bizProfile.logoBase64 ? (
-        <img src={bizProfile.logoBase64} alt="Logo" className="pv-logo" />
-      ) : (
-        <div className="pv-logo-placeholder">{bizProfile.name}</div>
-      )}
-      <h1 className="pv-quote-no">QUOTE NO : {quote.quote}</h1>
-      <div className="pv-info-grid">
-        <div className="pv-info-us">
-          <strong>{bizProfile.name}</strong>
-          {bizProfile.tagline && <div className="pv-tagline">{bizProfile.tagline}</div>}
-          {bizProfile.abn && <div>ABN : {bizProfile.abn}</div>}
-          {bizProfile.acn && <div>ACN : {bizProfile.acn}</div>}
-          {bizProfile.poBox && <div>{bizProfile.poBox}</div>}
+  const Header = () => (
+    <div className="pv2-header">
+      <div className="pv2-header-top">
+        <div className="pv2-logo-area">
+          {bizProfile.logoBase64
+            ? <img src={bizProfile.logoBase64} alt="Logo" className="pv2-logo" />
+            : <div className="pv2-biz-name">{bizProfile.name}</div>}
+          {bizProfile.tagline && <div className="pv2-tagline">{bizProfile.tagline}</div>}
+        </div>
+        <div className="pv2-doc-title">
+          <div className="pv2-doc-label">QUOTATION</div>
+          <div className="pv2-doc-no">{quote.quote}</div>
+          <div className="pv2-doc-date">{quoteDate}</div>
+        </div>
+      </div>
+      <div className="pv2-parties">
+        <div className="pv2-party">
+          <div className="pv2-party-label">FROM</div>
+          <div className="pv2-party-name">{bizProfile.name}</div>
           {bizProfile.address && <div>{bizProfile.address}</div>}
-          {bizProfile.email && <div>Email: {bizProfile.email}</div>}
-          {bizProfile.phone && <div>Phone: {bizProfile.phone}</div>}
+          {bizProfile.poBox && <div>{bizProfile.poBox}</div>}
+          {bizProfile.phone && <div>Ph: {bizProfile.phone}</div>}
+          {bizProfile.email && <div>{bizProfile.email}</div>}
+          {bizProfile.abn && <div>ABN: {bizProfile.abn}</div>}
         </div>
-        <div className="pv-info-them">
-          <div className="pv-them-dated">
-            <span>DATED</span><span>{quoteDate}</span>
-          </div>
-          <strong className="pv-client-name">{quote.client}</strong>
-          {quote.contact && <div>Attn : {quote.contact}</div>}
+        <div className="pv2-party">
+          <div className="pv2-party-label">TO</div>
+          <div className="pv2-party-name">{quote.client}</div>
+          {quote.contact && <div>Attn: {quote.contact}</div>}
         </div>
       </div>
-      {quoteComments && <div className="pv-delivery-note">{quoteComments}</div>}
+      {quoteComments && (
+        <div className="pv2-notes-bar">
+          <strong>Notes:&nbsp;</strong>{quoteComments}
+        </div>
+      )}
     </div>
   );
 
-  const PrintFooter = ({ page, total: tot }: { page: number; total: number }) => (
-    <div className="pv-footer">
-      <div className="pv-footer-tagline">{bizProfile.tagline}</div>
-      <div className="pv-footer-meta">
-        {bizProfile.poBox && <span>{bizProfile.poBox}</span>}
-        <span>Printed on : {printDate} — Page No: {page} of {tot}</span>
-      </div>
+  const Footer = ({ page, tot }: { page: number; tot: number }) => (
+    <div className="pv2-footer">
+      <span>{bizProfile.name}{bizProfile.tagline ? ` · ${bizProfile.tagline}` : ""}</span>
+      <span>Printed {printDate} · Page {page} of {tot}</span>
     </div>
   );
 
-  const TableHeader = () => (
+  const THead = () => (
     <thead>
-      <tr className="pv-col-head">
-        <th>#</th>
-        <th>Part No</th>
-        <th>Description</th>
-        <th>Thickness</th>
-        <th>Material</th>
-        <th>Supp.</th>
-        <th>Qty</th>
-        <th>Unit $</th>
-        <th>Total</th>
+      <tr className="pv2-thead">
+        <th style={{ width: 28 }}>#</th>
+        <th>Part / Description</th>
+        <th style={{ width: 60 }}>Thickness</th>
+        <th style={{ width: 80 }}>Material</th>
+        <th style={{ width: 36, textAlign: "right" }}>Qty</th>
+        <th style={{ width: 72, textAlign: "right" }}>Unit $</th>
+        <th style={{ width: 80, textAlign: "right" }}>Total $</th>
       </tr>
     </thead>
   );
 
   return (
-    <div className="pv-root">
+    <div className="pv2-root">
       {pages.map((pageLines, pi) => (
-        <div key={pi} className="pv-page">
-          <PrintHeader />
-          <table className="pv-table">
-            <TableHeader />
+        <div key={pi} className="pv2-page">
+          <Header />
+          <table className="pv2-table">
+            <THead />
             <tbody>
               {pageLines.map((line, i) => {
                 const rowNum = pi * ROWS_PER_PAGE + i + 1;
-                const unitPrice = line.qty > 0 ? line.total / line.qty : 0;
+                const unit = line.qty > 0 ? line.total / line.qty : 0;
                 return (
-                  <tr key={i} className="pv-row">
-                    <td>{rowNum}</td>
-                    <td>{line.part}</td>
-                    <td className="pv-desc">{line.material ? `${line.material.toUpperCase()} — ` : ""}{line.thickness ? `${line.thickness}mm` : ""}</td>
+                  <tr key={i} className={`pv2-row${rowNum % 2 === 0 ? " pv2-row-alt" : ""}`}>
+                    <td className="pv2-num">{rowNum}</td>
+                    <td>
+                      <div className="pv2-line-main">{line.part}</div>
+                      {(line.predecessor || line.side1) && (
+                        <div className="pv2-line-sub">
+                          {[line.predecessor, line.side1 && `${line.side1}${line.side2 ? ` × ${line.side2}` : ""}mm`].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </td>
                     <td>{line.thickness}</td>
                     <td>{line.material}</td>
-                    <td>NO</td>
-                    <td>{line.qty}</td>
-                    <td>{currency.format(unitPrice)}</td>
-                    <td>{currency.format(line.total)}</td>
+                    <td style={{ textAlign: "right" }}>{line.qty}</td>
+                    <td style={{ textAlign: "right" }}>{currency.format(unit)}</td>
+                    <td style={{ textAlign: "right", fontWeight: 600 }}>{currency.format(line.total)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <PrintFooter page={pi + 1} total={totalPages} />
+          <div style={{ flex: 1 }} />
+          <Footer page={pi + 1} tot={totalPages} />
         </div>
       ))}
 
-      {/* Comments / Totals page */}
-      <div className="pv-page pv-last-page">
-        <PrintHeader />
-        <table className="pv-table">
-          <TableHeader />
-          <tbody>
-            <tr><td colSpan={9} style={{ padding: "12px 8px" }}>
-              {bizProfile.validity && <div><strong>VALIDITY : </strong>{bizProfile.validity}</div>}
-              {bizProfile.paymentTerms && <div><strong>PAYMENT TERMS : </strong>{bizProfile.paymentTerms}</div>}
-              {bizProfile.disclaimer && <div style={{ marginTop: 8 }}>{bizProfile.disclaimer}</div>}
-            </td></tr>
-          </tbody>
-        </table>
-        <div className="pv-totals-bar">
-          {bizProfile.banking && <div className="pv-banking">{bizProfile.banking}</div>}
-          <div className="pv-totals">
-            <div><span>Total Qty:</span><span>{totalQty}</span></div>
-            <div><span>Sub Total :</span><span>{currency.format(subtotal)}</span></div>
-            <div><span>Delivery :</span><span></span></div>
-            <div><span>GST :</span><span>{currency.format(gst)}</span></div>
-            <div className="pv-total-row"><span>Total Amount :</span><span>{currency.format(total)}</span></div>
+      {/* Final page — terms + totals */}
+      <div className="pv2-page">
+        <Header />
+        <div className="pv2-terms-totals">
+          <div className="pv2-terms">
+            {bizProfile.validity && <p><strong>Validity:</strong> {bizProfile.validity}</p>}
+            {bizProfile.paymentTerms && <p><strong>Payment terms:</strong> {bizProfile.paymentTerms}</p>}
+            {bizProfile.banking && <p style={{ marginTop: 10 }}><strong>Banking details:</strong><br />{bizProfile.banking}</p>}
+            {bizProfile.disclaimer && <p className="pv2-disclaimer">{bizProfile.disclaimer}</p>}
+          </div>
+          <div className="pv2-totals">
+            <div className="pv2-trow"><span>Items</span><span>{totalQty} pcs across {lines.length} lines</span></div>
+            <div className="pv2-trow"><span>Subtotal</span><span>{currency.format(subtotal)}</span></div>
+            <div className="pv2-trow"><span>Delivery</span><span>{delivery > 0 ? currency.format(delivery) : "TBD"}</span></div>
+            <div className="pv2-trow"><span>GST (10%)</span><span>{currency.format(gst)}</span></div>
+            <div className="pv2-trow pv2-trow-grand"><span>Total (inc. GST)</span><span>{currency.format(grandTotal)}</span></div>
           </div>
         </div>
-        <PrintFooter page={totalPages} total={totalPages} />
+        <div style={{ flex: 1 }} />
+        <Footer page={totalPages} tot={totalPages} />
       </div>
     </div>
   );
