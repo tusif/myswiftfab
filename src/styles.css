@@ -2222,3 +2222,125 @@ td {
 .qf-dxf-prompt { color: #7a5800; font-size: 12px; font-weight: 600; }
 .qf-dxf-loading { color: #555; font-size: 12px; }
 .qf-dxf-loaded { color: #1a6b3c; font-size: 12px; font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════════════
+   CLIENT PORTAL STYLES
+   ══════════════════════════════════════════════════════════════════ */
+
+.portal-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f4f8;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.portal-topbar {
+  background: #153f4d;
+  border-bottom: 6px solid #f57c20;
+  color: #fff;
+  padding: 18px 32px;
+}
+.portal-brand { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+.portal-tagline { font-size: 12px; color: rgb(255 255 255 / 65%); margin-top: 3px; }
+
+.portal-main { flex: 1; padding: 32px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+.portal-footer { text-align: center; padding: 18px; font-size: 11px; color: #aaa; }
+
+.portal-loading { text-align: center; padding: 48px; color: #888; font-size: 14px; }
+
+/* ── Auth cards ── */
+.portal-card { background: #fff; border: 1px solid #dde3ea; border-radius: 10px; padding: 36px; max-width: 420px; margin: 40px auto 0; }
+.portal-card-title { font-size: 20px; font-weight: 800; color: #152032; margin: 0 0 6px; }
+.portal-card-sub { font-size: 13px; color: #667; margin: 0 0 24px; }
+.portal-form { display: flex; flex-direction: column; gap: 16px; }
+.portal-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: #334; }
+.portal-field input, .portal-field select, .portal-field textarea {
+  border: 1px solid #cdd3da; border-radius: 6px; padding: 9px 12px;
+  font: inherit; font-size: 13px; outline: none;
+}
+.portal-field input:focus, .portal-field select:focus, .portal-field textarea:focus { border-color: #f57c20; box-shadow: 0 0 0 2px #f57c2022; }
+
+.portal-btn-primary {
+  background: #f57c20; color: #fff; border: none; border-radius: 7px;
+  font: inherit; font-weight: 800; font-size: 13px; padding: 10px 20px;
+  cursor: pointer; white-space: nowrap;
+}
+.portal-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.portal-btn-primary:hover:not(:disabled) { background: #e06800; }
+
+.portal-btn-ghost {
+  background: transparent; color: #445; border: 1px solid #cdd3da;
+  border-radius: 7px; font: inherit; font-weight: 700; font-size: 13px;
+  padding: 9px 16px; cursor: pointer; white-space: nowrap;
+}
+.portal-btn-ghost:hover { background: #f0f4f8; }
+
+.portal-error { color: #c0392b; font-size: 12px; background: #fdf2f2; border: 1px solid #f5c6cb; border-radius: 5px; padding: 8px 12px; }
+
+/* ── Dashboard ── */
+.portal-dashboard { display: flex; flex-direction: column; gap: 24px; }
+.portal-dashboard-topbar { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+.portal-welcome { font-size: 22px; font-weight: 800; color: #152032; margin: 0; }
+.portal-email-tag { font-size: 12px; color: #667; margin-top: 3px; }
+.portal-dashboard-actions { display: flex; gap: 10px; align-items: center; }
+
+.portal-quotes-section { background: #fff; border: 1px solid #dde3ea; border-radius: 10px; overflow: hidden; }
+.portal-section-title { font-size: 14px; font-weight: 800; padding: 14px 18px; margin: 0; border-bottom: 1px solid #eee; background: #fafbfc; }
+.portal-empty { padding: 36px; text-align: center; color: #888; font-size: 13px; }
+
+.portal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.portal-table th { background: #f5f7fa; color: #556; font-weight: 700; padding: 8px 12px; text-align: left; border-bottom: 1px solid #e3e8ee; }
+.portal-table td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; }
+.portal-table tr:last-child td { border-bottom: none; }
+.portal-filename { font-weight: 600; color: #334; }
+
+.portal-status { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.portal-status--pending { background: #fff3cd; color: #856404; }
+.portal-status--reviewed { background: #cce5ff; color: #004085; }
+.portal-status--quoted { background: #d4edda; color: #155724; }
+.portal-status--rejected { background: #f8d7da; color: #721c24; }
+
+/* ── Upload panel ── */
+.portal-upload-panel { background: #fff; border: 1px solid #dde3ea; border-radius: 10px; overflow: hidden; }
+.portal-upload-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; background: #fafbfc; }
+.portal-upload-header h3 { margin: 0; font-size: 15px; font-weight: 800; }
+
+.portal-dxf-zone {
+  margin: 20px; border: 2px dashed #b8c8d8; border-radius: 8px;
+  background: #f8fafc; cursor: pointer; padding: 32px 24px; text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.portal-dxf-zone:hover, .portal-dxf-zone--done { background: #f0f8ff; border-color: #4a90d9; border-style: solid; }
+.portal-dxf-icon { font-size: 36px; margin-bottom: 10px; }
+.portal-dxf-hint strong { font-size: 14px; color: #334; }
+.portal-dxf-sub { font-size: 11px; color: #889; margin-top: 6px; }
+.portal-dxf-status { font-size: 13px; font-weight: 600; color: #334; }
+.portal-dxf-status--ok { color: #1a6b3c; }
+.portal-change-file { background: none; border: none; color: #4a90d9; font-size: 12px; cursor: pointer; margin-left: 10px; text-decoration: underline; }
+
+.portal-dxf-results { margin: 0 20px 16px; background: #f0f8f0; border: 1px solid #b8ddb8; border-radius: 7px; padding: 14px 16px; }
+.portal-result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.portal-result-grid div { display: flex; flex-direction: column; gap: 2px; }
+.portal-result-grid span { font-size: 10px; color: #556; font-weight: 700; text-transform: uppercase; }
+.portal-result-grid strong { font-size: 14px; font-weight: 800; color: #1a4a1a; }
+
+.portal-order-form { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.portal-order-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+.portal-upload-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #eee; background: #fafbfc; }
+
+/* ── Contact form portal invite ── */
+.portal-invite-section { border: 2px solid #f57c20; border-radius: 8px; padding: 16px; background: #fffbf5; }
+.portal-invite-section h3 { color: #d05000; margin: 0 0 6px; }
+.portal-invite-btn {
+  background: #153f4d; color: #fff; border: none; border-radius: 7px;
+  font: inherit; font-weight: 800; font-size: 12px; padding: 9px 16px;
+  cursor: pointer; white-space: nowrap;
+}
+.portal-invite-btn:hover:not(:disabled) { background: #1a5266; }
+.portal-invite-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.portal-invite-msg { font-size: 12px; margin-top: 8px; padding: 6px 10px; border-radius: 5px; }
+.portal-invite-msg--sent { background: #d4edda; color: #155724; }
+.portal-invite-msg--error { background: #f8d7da; color: #721c24; }

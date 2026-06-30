@@ -16,7 +16,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { hasSupabaseConfig } from "./lib/supabase";
+import { hasSupabaseConfig, supabase } from "./lib/supabase";
 import { materialRates, type MaterialRate } from "./materialRates";
 
 type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "settings";
@@ -703,6 +703,8 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   const [newNoteText, setNewNoteText] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
   const [customerDetailTab, setCustomerDetailTab] = useState<"details" | "staff" | "delivery" | "notes">("details");
+  const [inviteStatus, setInviteStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [inviteMsg, setInviteMsg] = useState("");
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const filteredContacts = contactRecords.filter((contact) =>
     [
@@ -1002,6 +1004,48 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
             <section>
               <h3>Notes</h3>
               <Field fieldId="notes" label="Internal notes" onChange={(value) => updateSelectedCustomer("notes", value)} rows={4} value={selectedCustomer.notes} />
+            </section>
+
+            <section className="portal-invite-section">
+              <h3>Client Portal Access</h3>
+              <p style={{ fontSize: 12, color: "#666", margin: "4px 0 10px" }}>
+                Send an invite so this client can log in, upload DXF files and submit quote requests online.
+              </p>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 11, color: "#888", marginBottom: 3 }}>Invite will be sent to:</div>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{selectedCustomer.email || <span style={{ color: "#c0392b" }}>No email on file — add one above first</span>}</div>
+                </div>
+                <button
+                  className="portal-invite-btn"
+                  disabled={!selectedCustomer.email || inviteStatus === "sending" || !supabase}
+                  type="button"
+                  onClick={async () => {
+                    if (!supabase || !selectedCustomer.email) return;
+                    setInviteStatus("sending");
+                    const redirectTo = `${window.location.origin}/portal`;
+                    const { error } = await (supabase.auth as any).admin
+                      ? await (supabase.auth as any).admin.inviteUserByEmail(selectedCustomer.email, { redirectTo })
+                      : await supabase.auth.signInWithOtp({ email: selectedCustomer.email, options: { emailRedirectTo: redirectTo, shouldCreateUser: true } });
+                    if (error) {
+                      setInviteStatus("error");
+                      setInviteMsg(error.message);
+                    } else {
+                      setInviteStatus("sent");
+                      setInviteMsg(`Invite sent to ${selectedCustomer.email}`);
+                    }
+                    setTimeout(() => setInviteStatus("idle"), 5000);
+                  }}
+                >
+                  {inviteStatus === "sending" ? "Sending…" : inviteStatus === "sent" ? "✓ Invite Sent!" : "Send Portal Invite"}
+                </button>
+              </div>
+              {inviteMsg && (
+                <div className={`portal-invite-msg portal-invite-msg--${inviteStatus}`}>{inviteMsg}</div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 11, color: "#999" }}>
+                Portal URL: <strong>{window.location.origin}/portal</strong>
+              </div>
             </section>
           </form>
         )}
