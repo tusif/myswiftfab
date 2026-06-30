@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dxfom/svg": "^0.0.5",
     "@supabase/supabase-js": "^2.45.4",
     "dxf-parser": "^1.1.2",
     "lucide-react": "^0.468.0",

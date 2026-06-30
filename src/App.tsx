@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { analyseDxf } from "./dxfUtils";
+import { createSvgString } from "@dxfom/svg";
+import { parseDxfFileString } from "@dxfom/dxf";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -2384,6 +2386,8 @@ function QuoteWorkbench({
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
   const [lineHoles, setLineHoles] = useState<Record<number, HoleRow[]>>({});
+  const [lineDxfText, setLineDxfText] = useState<Record<number, string>>({});
+  const [dxfViewIndex, setDxfViewIndex] = useState<number | null>(null);
   const [showPrint, setShowPrint] = useState(false);
   useEffect(() => {
     if (!showPrint) return;
@@ -2587,6 +2591,10 @@ function QuoteWorkbench({
     setDxfLoading(true);
     setDxfFileName(file.name);
     try {
+      // Read raw text for viewer before parsing
+      const rawText = await file.text();
+      const lineIdxForDxf = editingLineIndex !== null ? editingLineIndex : lines.length;
+      setLineDxfText(prev => ({ ...prev, [lineIdxForDxf]: rawText }));
       const result = await analyseDxf(file);
       if (result.rawError) {
         alert(`Could not parse DXF: ${result.rawError}`);
@@ -2982,6 +2990,9 @@ function QuoteWorkbench({
                       >
                         ⊕{othersCount > 0 ? ` ${othersCount}` : ""}
                       </button>
+                      {lineDxfText[index] && (
+                        <button className="qf2-act-btn qf2-dxf-view-btn" onClick={(e) => { e.stopPropagation(); setDxfViewIndex(index); }} title="View DXF" type="button">⬡</button>
+                      )}
                       <button className="qf2-act-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
                       <button className="qf2-act-btn qf2-act-del" onClick={(e) => { e.stopPropagation(); }} title="Delete" type="button">✕</button>
                     </td>
@@ -3109,6 +3120,32 @@ function QuoteWorkbench({
           })()}
         </div>
       </div>
+      {/* ── DXF Viewer Modal ── */}
+      {dxfViewIndex !== null && (() => {
+        const dxfText = lineDxfText[dxfViewIndex];
+        const line = lines[dxfViewIndex];
+        let svgContent = "";
+        try { if (dxfText) svgContent = createSvgString(parseDxfFileString(dxfText)); } catch { svgContent = ""; }
+        return (
+          <div className="dxf-modal-overlay" onClick={() => setDxfViewIndex(null)}>
+            <div className="dxf-modal" onClick={e => e.stopPropagation()}>
+              <div className="dxf-modal-head">
+                <div>
+                  <div className="dxf-modal-title">DXF Preview</div>
+                  {line && <div className="dxf-modal-sub">{line.part} · {line.thickness} · {line.material}</div>}
+                </div>
+                <button className="dxf-modal-close" onClick={() => setDxfViewIndex(null)} type="button">✕</button>
+              </div>
+              <div className="dxf-modal-body">
+                {svgContent
+                  ? <div className="dxf-svg-wrap" dangerouslySetInnerHTML={{ __html: svgContent }} />
+                  : <div className="dxf-modal-err">Could not render DXF preview.</div>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {showPrint && (
         <div className="print-only">
           <QuotePrintView
