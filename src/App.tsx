@@ -1137,39 +1137,7 @@ function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string
     loadFromLS(LS_LINES, { [quotes[0].quote]: quoteLines })
   );
   const [quoteSearchQuery, setQuoteSearchQuery] = useState("");
-  const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
-  const [clientSearchQuery, setClientSearchQuery] = useState("");
-  const [selectedQuoteClient, setSelectedQuoteClient] = useState<Contact | null>(null);
-  const [staffSearchQuery, setStaffSearchQuery] = useState("");
   const normalizedQuoteSearch = quoteSearchQuery.trim().toLowerCase();
-  const normalizedClientSearch = clientSearchQuery.trim().toLowerCase();
-  const normalizedStaffSearch = staffSearchQuery.trim().toLowerCase();
-  const clientContacts = contacts.filter((contact) => splitContactTypes(contact.kind).includes("Client"));
-  const filteredClientContacts = clientContacts.filter((contact) =>
-    [
-      contact.company,
-      contact.person,
-      contact.phone,
-      contact.email,
-      contact.accountCode,
-      contact.status,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(normalizedClientSearch),
-  );
-  const filteredStaffMembers = (selectedQuoteClient?.staff ?? []).filter((staffMember) =>
-    [
-      staffMember.name,
-      staffMember.jobTitle,
-      staffMember.direct,
-      staffMember.mobile,
-      staffMember.email,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(normalizedStaffSearch),
-  );
   const filteredQuoteRecords = quoteRecords.filter((quote) =>
     [
       quote.quote,
@@ -1185,37 +1153,11 @@ function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string
       .includes(normalizedQuoteSearch),
   );
 
-  const openNewQuoteClientPicker = () => {
-    setView("list");
-    setIsClientPickerOpen(true);
-    setClientSearchQuery("");
-    setSelectedQuoteClient(null);
-    setStaffSearchQuery("");
-  };
-
-  const chooseQuoteClient = (client: Contact) => {
-    setSelectedQuoteClient(client);
-    setStaffSearchQuery("");
-  };
-
-  const closeNewQuotePicker = () => {
-    setIsClientPickerOpen(false);
-    setSelectedQuoteClient(null);
-    setClientSearchQuery("");
-    setStaffSearchQuery("");
-  };
-
-  const startNewQuote = (client: Contact, staffMember: StaffMember) => {
-    const newQuote = createNewQuoteRecord(quoteRecords, client.company, staffMember.name);
-    setQuoteRecords([newQuote, ...quoteRecords]);
-    setQuoteLineRecords((currentLines) => ({
-      ...currentLines,
-      [newQuote.quote]: [],
-    }));
-    setCurrentQuote(newQuote);
+  const createNewQuote = () => {
+    const newQuote = createNewQuoteRecord(quoteRecords, "", "");
+    setQuoteRecords((prev) => [newQuote, ...prev]);
+    setQuoteLineRecords((prev) => ({ ...prev, [newQuote.quote]: [] }));
     setQuoteSearchQuery("");
-    closeNewQuotePicker();
-    setView("form");
   };
 
   const openQuote = (quote: QuoteRecord) => {
@@ -1268,7 +1210,6 @@ function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string
         onUpdateLine={updateQuoteLine}
         quote={currentQuote}
         onBack={() => setView("list")}
-        onNewQuote={openNewQuoteClientPicker}
         onSave={saveQuote}
         savedOthers={loadFromLS(LS_OTHERS + "_" + currentQuote.quote, {})}
         successorOptions={successorOptions}
@@ -1278,101 +1219,12 @@ function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string
   }
 
   return (
-    <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="">
+    <PagePanel eyebrow="Estimator" title="Quote Register" actionLabel="+ New Quote" onAction={createNewQuote}>
       <Toolbar
         onChange={setQuoteSearchQuery}
         placeholder="Search quote number or client"
         value={quoteSearchQuery}
       />
-      {isClientPickerOpen && !selectedQuoteClient && (
-        <section className="quote-client-picker" aria-label="Choose client for new quote">
-          <div className="quote-client-picker-heading">
-            <div>
-              <p className="eyebrow">New Quote</p>
-              <h3>Choose Client</h3>
-            </div>
-            <button className="secondary-action" onClick={closeNewQuotePicker} type="button">
-              Cancel
-            </button>
-          </div>
-          <Toolbar
-            onChange={setClientSearchQuery}
-            placeholder="Search clients"
-            value={clientSearchQuery}
-          />
-          <div className="client-picker-list">
-            {filteredClientContacts.map((contact) => (
-              <button
-                className="client-picker-item"
-                key={contact.id}
-                onClick={() => chooseQuoteClient(contact)}
-                type="button"
-              >
-                <span>
-                  <strong>{contact.company}</strong>
-                  <small>{contact.person} - {contact.phone}</small>
-                </span>
-                <Badge label={contact.status} />
-              </button>
-            ))}
-            {filteredClientContacts.length === 0 && (
-              <div className="empty-state">
-                <strong>No clients found</strong>
-                <span>Try a different client name, contact, phone, or account code.</span>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-      {isClientPickerOpen && selectedQuoteClient && (
-        <section className="quote-client-picker" aria-label="Choose staff for new quote">
-          <div className="quote-client-picker-heading">
-            <div>
-              <p className="eyebrow">New Quote</p>
-              <h3>Choose Staff</h3>
-            </div>
-            <div className="quote-picker-actions">
-              <button className="secondary-action" onClick={() => setSelectedQuoteClient(null)} type="button">
-                Back
-              </button>
-              <button className="secondary-action" onClick={closeNewQuotePicker} type="button">
-                Cancel
-              </button>
-            </div>
-          </div>
-          <div className="selected-client-strip">
-            <span>Client</span>
-            <strong>{selectedQuoteClient.company}</strong>
-          </div>
-          <Toolbar
-            onChange={setStaffSearchQuery}
-            placeholder="Search staff"
-            value={staffSearchQuery}
-          />
-          <div className="client-picker-list">
-            {filteredStaffMembers.map((staffMember) => (
-              <button
-                className="client-picker-item"
-                key={staffMember.id}
-                onClick={() => startNewQuote(selectedQuoteClient, staffMember)}
-                type="button"
-              >
-                <span>
-                  <strong>{staffMember.name || "Unnamed staff member"}</strong>
-                  <small>{staffMember.jobTitle || "Staff"} - {staffMember.email || staffMember.mobile || staffMember.direct || "No contact detail"}</small>
-                </span>
-                <Badge label={staffMember.title || "Staff"} />
-              </button>
-            ))}
-            {filteredStaffMembers.length === 0 && (
-              <div className="empty-state">
-                <strong>No staff found</strong>
-                <span>Try a different staff name, job title, phone, or email.</span>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
       <DataTable
         columns={["Quote", "Date", "Company", "Staff", "Lines", "Material", "Subtotal", "Delivery", "Total Del. Inc.", "GST", "Total GST Inc.", "Status"]}
         compact
@@ -2498,7 +2350,6 @@ function QuoteWorkbench({
   onAddLine,
   onUpdateLine,
   onBack,
-  onNewQuote,
   onSave,
   savedOthers,
   quote = quotes[0],
@@ -2510,7 +2361,6 @@ function QuoteWorkbench({
   onAddLine?: (line: QuoteLine) => void;
   onUpdateLine?: (index: number, line: QuoteLine) => void;
   onBack?: () => void;
-  onNewQuote?: () => void;
   onSave?: (lineOthers: Record<number, OtherLineItem[]>) => void;
   savedOthers?: Record<number, OtherLineItem[]>;
   quote?: QuoteRecord;
@@ -2813,9 +2663,6 @@ function QuoteWorkbench({
       {onBack && (
         <div className="quote-back-bar">
           <button className="secondary-action" onClick={onBack} type="button">← Quote List</button>
-          {onNewQuote && (
-            <button className="primary-action" onClick={onNewQuote} type="button">+ New Quote</button>
-          )}
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
