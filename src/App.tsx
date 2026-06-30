@@ -2371,7 +2371,7 @@ function QuoteWorkbench({
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
-  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines" | "advanced" | "others">("lines");
+  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines" | "others">("lines");
   const [selectedClientName, setSelectedClientName] = useState(quote.client);
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
@@ -2894,7 +2894,6 @@ function QuoteWorkbench({
       {/* ── Tab bar ── */}
       <div className="qf2-tab-bar">
         <button className={`qf2-tab${activeQuoteTab === "lines" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("lines")} type="button">Lines</button>
-        <button className={`qf2-tab${activeQuoteTab === "advanced" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("advanced")} type="button">Advanced</button>
         <button className={`qf2-tab${activeQuoteTab === "others" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("others")} type="button">
           Others {totalOthersCount > 0 && <span className="qf2-tab-badge">{totalOthersCount}</span>}
         </button>
@@ -2968,48 +2967,6 @@ function QuoteWorkbench({
         </table>
       </div>
 
-      {/* ── Advanced tab ── */}
-      {activeQuoteTab === "advanced" && (
-        <div className="qf-tab-panel table-wrap">
-          <table className="qf-lines-tbl">
-            <thead>
-              <tr>
-                <th>#</th><th>Part</th><th>Description</th><th>Thickness</th><th>Material</th><th style={{ textAlign: "right" }}>Material $</th><th style={{ textAlign: "right" }}>Cutting $</th><th style={{ textAlign: "right" }}>Piercing</th><th style={{ textAlign: "right" }}>Other $</th><th style={{ textAlign: "right" }}>Rate</th><th style={{ textAlign: "right" }}>Qty</th><th style={{ textAlign: "right" }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line, i) => {
-                const othersAmt = (lineOthers[i] ?? []).reduce((s, o) => s + o.cost * o.qty * (1 + o.markupPct / 100), 0);
-                const rate = line.qty > 0 ? line.total / line.qty : 0;
-                return (
-                  <tr key={i} className="qf-line-row">
-                    <td>{i + 1}</td>
-                    <td>{line.part}</td>
-                    <td style={{ minWidth: 200 }}>{line.predecessor ? `${line.predecessor.toUpperCase()} ${line.side1 ?? ""}${line.side2 ? ` x ${line.side2}` : ""}` : "—"}</td>
-                    <td>{line.thickness}</td>
-                    <td>{line.material}</td>
-                    <td style={{ textAlign: "right" }}>{currency.format(line.costPerM2 ?? 0)}</td>
-                    <td style={{ textAlign: "right" }}>{currency.format(line.cut)}</td>
-                    <td style={{ textAlign: "right" }}>{line.pierce.toFixed(2)}</td>
-                    <td style={{ textAlign: "right" }}>{currency.format(othersAmt)}</td>
-                    <td style={{ textAlign: "right" }}>{currency.format(rate)}</td>
-                    <td style={{ textAlign: "right" }}>{line.qty}</td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>{currency.format(line.total)}</td>
-                  </tr>
-                );
-              })}
-              {lines.length === 0 && <tr><td className="empty-table-cell" colSpan={12}>No lines yet.</td></tr>}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={10} style={{ textAlign: "right", fontWeight: 700, padding: "6px 8px" }}>Grand Total:</td>
-                <td style={{ textAlign: "right", padding: "6px 8px" }}>{lines.reduce((s, l) => s + l.qty, 0)}</td>
-                <td style={{ textAlign: "right", fontWeight: 800, padding: "6px 8px" }}>{currency.format(lines.reduce((s, l) => s + l.total, 0))}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
 
       {/* ── Others tab ── */}
       {activeQuoteTab === "others" && (
