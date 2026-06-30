@@ -2371,7 +2371,7 @@ function QuoteWorkbench({
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [lineDraft, setLineDraft] = useState<QuoteLineDraft>(createBlankQuoteLineDraft);
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
-  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines" | "advanced" | "others" | "holes">("lines");
+  const [activeQuoteTab, setActiveQuoteTab] = useState<"lines" | "advanced" | "others">("lines");
   const [selectedClientName, setSelectedClientName] = useState(quote.client);
   const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
@@ -2659,10 +2659,11 @@ function QuoteWorkbench({
 
   return (
     <article className="quote-panel">
-      {/* Back bar */}
+      {/* ── Action bar ── */}
       {onBack && (
-        <div className="quote-back-bar">
+        <div className="qf2-bar">
           <button className="secondary-action" onClick={onBack} type="button">← Quote List</button>
+          <div className="qf2-bar-sep" />
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
@@ -2670,93 +2671,91 @@ function QuoteWorkbench({
             </button>
           )}
           <button className="qf-print-btn" onClick={() => { setShowPrint(true); setTimeout(() => { window.print(); setShowPrint(false); }, 100); }} type="button">🖨 Print / PDF</button>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16, fontSize: 13 }}>
+            <span style={{ color: "#889", fontSize: 11 }}>QUOTE</span>
+            <strong style={{ fontSize: 14 }}>{quote.quote}</strong>
+            <span style={{ color: "#889", fontSize: 11, marginLeft: 8 }}>DATE</span>
+            <span>{quote.date ?? "—"}</span>
+          </div>
         </div>
       )}
 
-      {/* ── Header strip ── */}
-      <div className="qf-header">
-        <div className="qf-header-main">
-          {/* Row 1: column labels */}
-          <div className="qf-hrow qf-hrow-labels">
-            <div className="qf-col-head">CLIENT</div>
-            <div className="qf-col-head">STAFF</div>
-            <div className="qf-col-head">DELIVERY DETAILS</div>
-            <div className="qf-col-head">NOTES FOR</div>
-            <div className="qf-col-head">FLAGS</div>
-          </div>
+      {/* ── Header ── */}
+      <div className="qf2-header">
+        {/* Col 1: Client */}
+        <div className="qf2-hcol">
+          <div className="qf2-hlabel">Client</div>
+          <select className="qf2-hselect" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
+            {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
+              <option key={c.id} value={c.company}>{c.company}</option>
+            ))}
+          </select>
+          <div className="qf2-hsub">{selectedClient.billingAddress || "—"}</div>
+          <div className="qf2-hsub" style={{ marginTop: 2 }}>{selectedClient.email || ""}</div>
+        </div>
 
-          {/* Row 2: client data */}
-          <div className="qf-hrow qf-hrow-data">
-            {/* Client Company */}
-            <div className="qf-hcell">
-              <select aria-label="Client Company" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
-                {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
-                  <option key={c.id} value={c.company}>{c.company}</option>
-                ))}
-              </select>
-              <span className="qf-subval">{selectedClient.billingAddress?.split(",")[0] ?? ""}</span>
-              <span className="qf-subval">{selectedClient.billingAddress?.split(",").slice(1).join(",").trim() ?? ""}</span>
-            </div>
-            {/* Staff — name and job title only */}
-            <div className="qf-hcell">
-              <select aria-label="Staff" onChange={(e) => setSelectedStaffName(e.target.value)} value={selectedStaff?.name ?? ""}>
-                {selectedClient.staff.map((s) => (
-                  <option key={s.id} value={s.name}>{s.name}</option>
-                ))}
-              </select>
-              <span className="qf-subval">{selectedStaff?.jobTitle ?? ""}</span>
-            </div>
-            {/* Delivery Street */}
-            <div className="qf-hcell">
-              <input placeholder="Street" className="qf-subinput" style={{ width: "75%" }} />
-              <input placeholder="PostCode" className="qf-subinput" style={{ width: "20%" }} />
-              <input placeholder="Suburb" className="qf-subinput" style={{ width: "60%" }} />
-              <input placeholder="State" className="qf-subinput" style={{ width: "30%" }} />
-            </div>
-            {/* Notes For — client notes visible at quote level */}
-            <div className="qf-hcell qf-notes-for-cell">
-              <span className="qf-subval qf-notes-for-text">{selectedClient.notes || "—"}</span>
-            </div>
-            {/* Flags */}
-            <div className="qf-hcell qf-flags-cell">
-              <label><input type="checkbox" /> Pre Invoice</label>
-              <label><input type="checkbox" /> Cash Account</label>
-              <div className="qf-timestamp">
-                <span>Created</span>
-                <span>{quote.date ?? "—"}</span>
-              </div>
-              <div className="qf-timestamp">
-                <span>Sent</span>
-                <input type="checkbox" />
-              </div>
-            </div>
+        {/* Col 2: Contact + Sales Staff */}
+        <div className="qf2-hcol">
+          <div className="qf2-hlabel">Contact person</div>
+          <select className="qf2-hselect" onChange={(e) => setSelectedStaffName(e.target.value)} value={selectedStaff?.name ?? ""}>
+            <option value="">— Select —</option>
+            {selectedClient.staff.map((s) => (
+              <option key={s.id} value={s.name}>{s.name}</option>
+            ))}
+          </select>
+          <div className="qf2-hsub">{selectedStaff?.jobTitle ?? ""}{selectedStaff?.direct ? ` · ${selectedStaff.direct}` : ""}</div>
+          <div style={{ marginTop: 10 }}>
+            <div className="qf2-hlabel">Sales staff</div>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{quote.contact || "—"}</div>
           </div>
         </div>
 
-        {/* Right panel: Status / Quote / Date / Sales Staff — vertical, right-aligned */}
-        <div className="qf-header-right">
-          <select
-            className="qf-status-badge"
-            style={{ background: statusBg, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", width: "100%" }}
-            value={quoteStatus}
-            onChange={(e) => setQuoteStatus(e.target.value)}
-          >
-            {statusOptions.map(s => <option key={s} value={s} style={{ background: "#fff", color: "#333" }}>{s.toUpperCase()}</option>)}
-          </select>
-          <div className="qf-right-row">
-            <span className="qf-label">QUOTE</span>
-            <span className="qf-field-val">{quote.quote}</span>
+        {/* Col 3: Delivery address */}
+        <div className="qf2-hcol">
+          <div className="qf2-hlabel">Delivery address</div>
+          <input className="qf2-dinput" placeholder="Street" />
+          <input className="qf2-dinput" placeholder="Suburb, State, Postcode" style={{ marginTop: 4 }} />
+          <div className="qf2-hsub" style={{ marginTop: 4 }}>Leave blank to use billing address</div>
+        </div>
+
+        {/* Right: Status panel */}
+        <div className="qf2-status-panel">
+          <div className="qf2-srow" style={{ paddingTop: 10 }}>
+            <span className="qf2-slabel">Status</span>
+            <select
+              style={{ background: statusBg, color: "#fff", border: "none", borderRadius: 5, fontSize: 11, fontWeight: 700, padding: "4px 8px", cursor: "pointer" }}
+              value={quoteStatus}
+              onChange={(e) => setQuoteStatus(e.target.value)}
+            >
+              {statusOptions.map(s => <option key={s} value={s} style={{ background: "#fff", color: "#333" }}>{s.toUpperCase()}</option>)}
+            </select>
           </div>
-          <div className="qf-right-row">
-            <span className="qf-label">DATE</span>
-            <span className="qf-field-val">{quote.date ?? "—"}</span>
+          <div className="qf2-srow">
+            <span className="qf2-slabel">Pre-invoice</span>
+            <input type="checkbox" />
           </div>
-          <div className="qf-right-row">
-            <span className="qf-label">SALES STAFF</span>
-            <span className="qf-field-val">{quote.contact}</span>
+          <div className="qf2-srow">
+            <span className="qf2-slabel">Cash account</span>
+            <input type="checkbox" />
+          </div>
+          <div className="qf2-srow">
+            <span className="qf2-slabel">Sent</span>
+            <input type="checkbox" />
+          </div>
+          <div className="qf2-srow" style={{ borderBottom: "none" }}>
+            <span className="qf2-slabel">Min. cutting charge</span>
+            <input type="checkbox" />
           </div>
         </div>
       </div>
+
+      {/* Client notes strip */}
+      {selectedClient.notes && (
+        <div className="qf2-notes-strip">
+          <span style={{ fontSize: 13, opacity: 0.7 }}>ℹ</span>
+          <span>{selectedClient.notes}</span>
+        </div>
+      )}
 
       {/* ── Add / Edit line drawer ── */}
       {isLineFormOpen && <div className="qf-drawer-overlay" onClick={closeLineForm} />}
@@ -2892,57 +2891,56 @@ function QuoteWorkbench({
         </div>
       </aside>
 
-      {/* ── Line items table ── */}
-      <div className="qf-lines-heading">
-        <div style={{ flex: 1 }} />
-        <span className="qf-label" style={{ padding: "0 12px" }}>Minimum Cutting Charge</span>
-        <button className="qf-dup-btn" type="button">DUPLICATE</button>
-      </div>
       {/* ── Tab bar ── */}
-      <div className="qf-tab-bar">
-        <button className={`qf-tab${activeQuoteTab === "lines" ? " qf-tab--active" : ""}`} onClick={() => setActiveQuoteTab("lines")} type="button">Lines</button>
-        <button className={`qf-tab${activeQuoteTab === "advanced" ? " qf-tab--active" : ""}`} onClick={() => setActiveQuoteTab("advanced")} type="button">Advanced</button>
-        <button className={`qf-tab${activeQuoteTab === "others" ? " qf-tab--active" : ""}`} onClick={() => setActiveQuoteTab("others")} type="button">
-          Others {totalOthersCount > 0 && <span className="qf-drawer-badge">{totalOthersCount}</span>}
+      <div className="qf2-tab-bar">
+        <button className={`qf2-tab${activeQuoteTab === "lines" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("lines")} type="button">Lines</button>
+        <button className={`qf2-tab${activeQuoteTab === "advanced" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("advanced")} type="button">Advanced</button>
+        <button className={`qf2-tab${activeQuoteTab === "others" ? " qf2-tab--active" : ""}`} onClick={() => setActiveQuoteTab("others")} type="button">
+          Others {totalOthersCount > 0 && <span className="qf2-tab-badge">{totalOthersCount}</span>}
         </button>
-        <button className={`qf-tab${activeQuoteTab === "holes" ? " qf-tab--active" : ""}`} onClick={() => setActiveQuoteTab("holes")} type="button">
-          Holes {totalHolesCount > 0 && <span className="qf-drawer-badge">{totalHolesCount}</span>}
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", paddingRight: 14, gap: 8, fontSize: 11, color: "#889" }}>
+          {lines.length > 0 && (
+            <span>{lines.length} line{lines.length !== 1 ? "s" : ""} · {[...new Set(lines.map(l => l.material))].join(", ")}</span>
+          )}
+        </div>
       </div>
 
       {/* ── Lines tab ── */}
-      <div className="quote-lines-table table-wrap" style={activeQuoteTab !== "lines" ? { display: "none" } : undefined}>
-        <table className="qf-lines-tbl">
+      <div className="table-wrap" style={activeQuoteTab !== "lines" ? { display: "none" } : undefined}>
+        <table className="qf2-lines-tbl">
           <thead>
             <tr>
-              {/* S_No | Program No | Customers Part No | CC_CostCode | Part Description | Thick | Material | Qty | Free Material | TMaterialCost | U_Cutting Cost | TOtherSales | Sales Amount | Status */}
-              <th>S/N</th><th>Prog. No</th><th>Part number</th><th>CC</th>
-              <th style={{ minWidth: 220 }}>Description</th>
-              <th>mm</th><th>Material</th><th>Qty</th>
-              <th>SUPPL</th><th>Matrl</th><th>Rate</th><th>Other</th><th>Total$</th>
-              <th>Status</th><th></th>
+              <th style={{ width: 32 }}>#</th>
+              <th>Description</th>
+              <th>mm</th>
+              <th>Material</th>
+              <th style={{ textAlign: "right" }}>Qty</th>
+              <th style={{ textAlign: "right" }}>Matrl $</th>
+              <th style={{ textAlign: "right" }}>Rate $</th>
+              <th style={{ textAlign: "right" }}>Total $</th>
+              <th>Status</th>
+              <th style={{ width: 64 }}></th>
             </tr>
           </thead>
           <tbody>
             {lines.map((line, index) => (
               <tr
                 aria-current={selectedLineIndex === index ? "true" : undefined}
+                className={selectedLineIndex === index ? "qf2-row-selected" : ""}
                 key={`${line.part}-${index}`}
                 onClick={() => setSelectedLineIndex(index)}
               >
-                <td>{index}</td>
-                <td>{1372916 + index}</td>
-                <td className="qf-muted">PART NUMBER</td>
-                <td>CC</td>
-                <td style={{ textAlign: "left" }}>{line.part}</td>
-                <td>{line.thickness.replace(" mm","")}</td>
-                <td>{line.material}</td>
-                <td>{line.qty}</td>
-                <td>NO</td>
-                <td>{currency.format(line.costPerM2 ?? 0)}</td>
-                <td>{currency.format(line.cut)}</td>
-                <td></td>
-                <td>{currency.format(line.total)}</td>
+                <td style={{ color: "#aaa", fontSize: 11 }}>{index}</td>
+                <td>
+                  <div className="qf2-line-desc">{line.part}</div>
+                  <div className="qf2-line-sub">Prog. {1372916 + index} · CC</div>
+                </td>
+                <td>{line.thickness.replace(" mm", "")}</td>
+                <td><span className="qf2-mat-tag">{line.material}</span></td>
+                <td style={{ textAlign: "right" }}>{line.qty}</td>
+                <td style={{ textAlign: "right" }}>{currency.format(line.costPerM2 ?? 0)}</td>
+                <td style={{ textAlign: "right" }}>{currency.format(line.cut)}</td>
+                <td style={{ textAlign: "right", fontWeight: 600 }}>{currency.format(line.total)}</td>
                 <td>{(() => {
                   const s = lineStatuses[index] ?? "Q";
                   return (
@@ -2950,21 +2948,21 @@ function QuoteWorkbench({
                       value={s}
                       onClick={e => e.stopPropagation()}
                       onChange={e => { e.stopPropagation(); setLineStatuses(prev => ({ ...prev, [index]: e.target.value })); }}
-                      style={{ background: lineStatusColor[s] ?? "#555", color: "#fff", border: "none", borderRadius: 3, fontWeight: 700, padding: "2px 4px", cursor: "pointer", width: "100%" }}
+                      className="qf2-status-sel"
+                      style={{ background: lineStatusColor[s] ?? "#555" }}
                     >
                       {LINE_STATUSES.map(o => <option key={o.value} value={o.value} style={{ background: "#fff", color: "#333" }}>{o.value}</option>)}
                     </select>
                   );
                 })()}</td>
-                <td className="qf-del-cell">
-                  <button className="qf-edit-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
-                  <span style={{ margin: "0 2px", color: "#ccc" }}>|</span>
-                  <span className="qf-del-x">✕</span>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button className="qf2-act-btn" onClick={(e) => { e.stopPropagation(); openEditLineForm(index); }} title="Edit" type="button">✎</button>
+                  <button className="qf2-act-btn qf2-act-del" onClick={(e) => { e.stopPropagation(); }} title="Delete" type="button">✕</button>
                 </td>
               </tr>
             ))}
             {lines.length === 0 && (
-              <tr><td className="empty-table-cell" colSpan={15}>No line items yet. Click + Add Line to begin.</td></tr>
+              <tr><td className="empty-table-cell" colSpan={10}>No line items yet — click + Add Line to begin.</td></tr>
             )}
           </tbody>
         </table>
@@ -3081,85 +3079,23 @@ function QuoteWorkbench({
         </div>
       )}
 
-      {/* ── Holes tab ── */}
-      {activeQuoteTab === "holes" && (
-        <div className="qf-tab-panel table-wrap">
-          <table className="qf-calc-table" style={{ width: "100%" }}>
-            <thead>
-              <tr><th>Line</th><th>Hole Type</th><th>Qty</th><th>Dia</th><th>Side 1</th><th>Side 2</th><th>Len</th><th>Perimeter</th><th>Hole Desc</th><th>Weight (kg)</th></tr>
-            </thead>
-            <tbody>
-              {allHoles.map(h => (
-                <tr key={h.id}>
-                  <td style={{ fontSize: 10, color: "#888", whiteSpace: "nowrap" }}>{h.lineLabel}</td>
-                  <td style={{ fontWeight: 600 }}>{h.holeType}</td>
-                  <td style={{ textAlign: "center" }}>{h.qty}</td>
-                  <td style={{ textAlign: "center" }}>{h.dia || "—"}</td>
-                  <td style={{ textAlign: "center" }}>{h.side1 || "—"}</td>
-                  <td style={{ textAlign: "center" }}>{h.side2 || "—"}</td>
-                  <td style={{ textAlign: "center" }}>{h.len || "—"}</td>
-                  <td style={{ fontWeight: 700, textAlign: "center" }}>{calcPerimeter(h)}</td>
-                  <td>{h.holeDesc}</td>
-                  <td style={{ fontWeight: 700, textAlign: "center", color: "#555" }}>{calcHoleWeight(h)}</td>
-                </tr>
-              ))}
-              {allHoles.length === 0 && <tr><td colSpan={10} style={{ color: "#bbb", fontStyle: "italic", padding: "12px", textAlign: "center" }}>No holes recorded — add holes when editing a line item</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* ── Footer ── */}
-      <div className="qf-footer">
-        {/* NOTES */}
-        <div className="qf-notes-col">
-          <div className="qf-section-head">NOTES</div>
-          <textarea onChange={(e) => setQuoteComments(e.target.value)} placeholder="Quote Notes" value={quoteComments} />
+      <div className="qf2-footer">
+        <div className="qf2-fcol">
+          <label className="qf2-flabel">Quote notes</label>
+          <textarea className="qf2-ftextarea" onChange={(e) => setQuoteComments(e.target.value)} placeholder="Internal notes for this quote…" value={quoteComments} />
         </div>
-
-        {/* Delivery Notes | Quote Delivery | Summary table */}
-        <div className="qf-delivery-col">
-          <div className="qf-delivery-top">
-            <div style={{ flex: 1 }}>
-              <div className="qf-label" style={{ padding: "3px 6px" }}>Delivery Notes :</div>
-              <textarea placeholder="Quote Delivery" style={{ width: "100%", minHeight: 40, border: "none", background: "transparent", fontSize: 10, padding: "3px 6px" }} />
-            </div>
-          </div>
-          <table className="qf-summary-table">
-            <thead>
-              <tr><th></th><th>Material</th><th>Total</th><th>Weight</th><th>Time</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="qf-row-label">Laser :</td>
-                <td>{currency.format(lines.reduce((s, l) => s + (l.costPerM2 ?? 0), 0))}</td>
-                <td>{currency.format(lines.reduce((s, l) => s + l.total, 0))}</td>
-                <td>0</td>
-                <td>{lines.reduce((s, l) => s + l.total / 30, 0).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td className="qf-row-label">Plasma :</td>
-                <td>0</td><td></td><td></td><td></td>
-              </tr>
-            </tbody>
-          </table>
-          <div className="qf-valid-row"><span>Quote Valid for :</span><span>QUOTE IS VALID FOR 30 DAYS</span></div>
-          <div className="qf-valid-row"><span>Approved by :</span><span></span></div>
+        <div className="qf2-fcol">
+          <label className="qf2-flabel">Delivery notes</label>
+          <textarea className="qf2-ftextarea" placeholder="Delivery instructions, site contact…" />
+          <div style={{ marginTop: 8, fontSize: 11, color: "#889" }}>Quote valid for: <strong style={{ color: "#334" }}>30 days</strong></div>
         </div>
-
-        {/* Subtotal / Delivery / Total Del Inc / GST / Total GST Inc */}
-        <div className="qf-totals-col">
-          <div><span>Subtotal :</span><strong>{currency.format(quote.total)}</strong></div>
-          <div><span>Delivery :</span><strong>{currency.format(quote.delivery ?? 0)}</strong></div>
-          <div><span>Total Del. Inc. :</span><strong>{currency.format(quote.total + (quote.delivery ?? 0))}</strong></div>
-          <div><span>GST :</span><strong>{currency.format(gst)}</strong></div>
-          <div><span>Total GST Inc. :</span><strong>{currency.format(totalIncGst)}</strong></div>
-        </div>
-
-        {/* Cost Amount (Del___Total_Material Cost) */}
-        <div className="qf-cost-col">
-          <div className="qf-section-head">Cost Amount</div>
-          <strong>{currency.format(lines.reduce((s, l) => s + (l.costPerM2 ?? 0) * l.qty, 0))}</strong>
+        <div className="qf2-totals">
+          <div className="qf2-trow"><span>Subtotal</span><span>{currency.format(quote.total)}</span></div>
+          <div className="qf2-trow"><span>Delivery</span><span>{currency.format(quote.delivery ?? 0)}</span></div>
+          <div className="qf2-trow"><span>Total del. inc.</span><span>{currency.format(quote.total + (quote.delivery ?? 0))}</span></div>
+          <div className="qf2-trow"><span>GST (10%)</span><span>{currency.format(gst)}</span></div>
+          <div className="qf2-trow qf2-trow-grand"><span>Total GST inc.</span><span>{currency.format(totalIncGst)}</span></div>
         </div>
       </div>
       {showPrint && (
