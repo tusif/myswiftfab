@@ -2206,3 +2206,19 @@ td {
 .qf-tab--active { background: #fff; border-color: #b8a898; color: #2a1a0a; font-weight: 700; }
 .qf-tab-panel { padding: 0; }
 .qf-tab-panel-actions { padding: 8px 12px; background: #f5f0ea; border-bottom: 1px solid #e0d8d0; display: flex; gap: 8px; align-items: center; }
+
+/* ── DXF Upload Zone ────────────────────────────────────────────── */
+.qf-dxf-upload-zone {
+  border: 2px dashed #b8a060;
+  border-radius: 6px;
+  background: #fdf8ee;
+  cursor: pointer;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.qf-dxf-upload-zone:hover { background: #fef3d0; border-color: #8a6000; }
+.qf-dxf-prompt { color: #7a5800; font-size: 12px; font-weight: 600; }
+.qf-dxf-loading { color: #555; font-size: 12px; }
+.qf-dxf-loaded { color: #1a6b3c; font-size: 12px; font-weight: 700; }

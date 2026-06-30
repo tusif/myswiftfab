@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { analyseDxf } from "./dxfUtils";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -2190,6 +2191,9 @@ function QuoteWorkbench({
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
   const [lineHoles, setLineHoles] = useState<Record<number, HoleRow[]>>({});
   const [showPrint, setShowPrint] = useState(false);
+  const [dxfLoading, setDxfLoading] = useState(false);
+  const [dxfFileName, setDxfFileName] = useState("");
+  const dxfInputRef = useRef<HTMLInputElement>(null);
   const LINE_STATUSES = [
     { value: "Q", label: "Q — Quote" },
     { value: "J", label: "J — Job" },
@@ -2357,6 +2361,7 @@ function QuoteWorkbench({
     setIsLineFormOpen(false);
     setEditingLineIndex(null);
     setLineDraft(createBlankQuoteLineDraft());
+    setDxfFileName("");
   };
 
   const addLine = () => {
@@ -2372,6 +2377,44 @@ function QuoteWorkbench({
     }
     setHoleRows([]);
     closeLineForm();
+  };
+
+  const handleDxfUpload = async (file: File) => {
+    setDxfLoading(true);
+    setDxfFileName(file.name);
+    try {
+      const result = await analyseDxf(file);
+      if (result.rawError) {
+        alert(`Could not parse DXF: ${result.rawError}`);
+        return;
+      }
+      // Auto-fill dimensions
+      updateLineDraft("side1", String(result.plateWidth));
+      updateLineDraft("side2", String(result.plateHeight));
+      // Cut length → pierce count (stored in pierce field as a note for now)
+      updateLineDraft("pierce", String(result.pierceCount));
+      // Auto-set predecessor if not already set
+      if (!lineDraft.predecessor || lineDraft.predecessor === "Plate") {
+        updateLineDraft("predecessor", "Plate");
+      }
+      // Auto-fill holes
+      if (result.holes.length > 0) {
+        const newHoles = result.holes.map(h => ({
+          id: crypto.randomUUID(),
+          holeType: "Laser Cut Holes" as const,
+          qty: String(h.qty),
+          dia: String(h.dia),
+          side1: "", side2: "", len: "", holeDesc: "", weight: "",
+        }));
+        setHoleRows(newHoles);
+      }
+      // Auto-generate description
+      const draft = { ...lineDraft, side1: String(result.plateWidth), side2: String(result.plateHeight) };
+      const desc = `PLATE ${result.plateWidth} x ${result.plateHeight}${result.holes.length > 0 ? " WITH HOLES" : ""}`;
+      if (!lineDraft.part.trim()) updateLineDraft("part", desc);
+    } finally {
+      setDxfLoading(false);
+    }
   };
 
   const applyDescription = () => {
@@ -2543,6 +2586,27 @@ function QuoteWorkbench({
           </div>
         </div>
         <div className="qf-drawer-body">
+          {/* ── DXF Upload ── */}
+          <div className="qf-dxf-upload-zone" onClick={() => dxfInputRef.current?.click()}>
+            <input
+              ref={dxfInputRef}
+              type="file"
+              accept=".dxf"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) await handleDxfUpload(file);
+                e.target.value = "";
+              }}
+            />
+            {dxfLoading ? (
+              <span className="qf-dxf-loading">⏳ Analysing DXF...</span>
+            ) : dxfFileName ? (
+              <span className="qf-dxf-loaded">✅ {dxfFileName} — dimensions auto-filled</span>
+            ) : (
+              <span className="qf-dxf-prompt">📂 Click to upload DXF — auto-fills dimensions &amp; holes</span>
+            )}
+          </div>
           <div className="qf-dim-row">
             <label className="field" style={{ flex: 1 }}>
               <span>Predecessor</span>
