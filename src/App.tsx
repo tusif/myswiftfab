@@ -1186,6 +1186,7 @@ function QuotesPage({ successorOptions, bizProfile }: { successorOptions: string
   );
 
   const openNewQuoteClientPicker = () => {
+    setView("list");
     setIsClientPickerOpen(true);
     setClientSearchQuery("");
     setSelectedQuoteClient(null);
