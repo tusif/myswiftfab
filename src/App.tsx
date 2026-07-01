@@ -1038,9 +1038,10 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
                     if (!supabase || !selectedCustomer.email) return;
                     setInviteStatus("sending");
                     const redirectTo = `${window.location.origin}/portal`;
-                    const { error } = await (supabase.auth as any).admin
-                      ? await (supabase.auth as any).admin.inviteUserByEmail(selectedCustomer.email, { redirectTo })
-                      : await supabase.auth.signInWithOtp({ email: selectedCustomer.email, options: { emailRedirectTo: redirectTo, shouldCreateUser: true } });
+                    const { error } = await supabase.auth.signInWithOtp({
+                      email: selectedCustomer.email,
+                      options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
+                    });
                     if (error) {
                       setInviteStatus("error");
                       setInviteMsg(error.message);
