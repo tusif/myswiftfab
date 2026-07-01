@@ -715,6 +715,7 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   const [customerDetailTab, setCustomerDetailTab] = useState<"details" | "staff" | "delivery" | "notes">("details");
   const [inviteStatus, setInviteStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [inviteMsg, setInviteMsg] = useState("");
+  const [generatedPassword, setGeneratedPassword] = useState("");
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const filteredContacts = contactRecords.filter((contact) =>
     [
@@ -1037,27 +1038,55 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
                   onClick={async () => {
                     if (!supabase || !selectedCustomer.email) return;
                     setInviteStatus("sending");
-                    const redirectTo = `${window.location.origin}/portal`;
-                    const { error } = await supabase.auth.signInWithOtp({
+                    setGeneratedPassword("");
+                    // Generate a readable random password: 3 words pattern e.g. "Blue94Hawk"
+                    const words = ["Swift","Laser","Steel","Plate","Forge","Metal","Bolt","Edge","Cut","Arc"];
+                    const pw = words[Math.floor(Math.random()*words.length)]
+                      + Math.floor(10+Math.random()*90)
+                      + words[Math.floor(Math.random()*words.length)];
+                    const { error } = await supabase.auth.signUp({
                       email: selectedCustomer.email,
-                      options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
+                      password: pw,
+                      options: { emailRedirectTo: `${window.location.origin}/portal` },
                     });
                     if (error) {
                       setInviteStatus("error");
                       setInviteMsg(error.message);
                     } else {
                       setInviteStatus("sent");
-                      setInviteMsg(`Invite sent to ${selectedCustomer.email}`);
+                      setGeneratedPassword(pw);
+                      setInviteMsg("");
                     }
-                    setTimeout(() => setInviteStatus("idle"), 5000);
                   }}
                 >
-                  {inviteStatus === "sending" ? "Sending…" : inviteStatus === "sent" ? "✓ Invite Sent!" : "Send Portal Invite"}
+                  {inviteStatus === "sending" ? "Creating account…" : inviteStatus === "sent" ? "✓ Account Created" : "Send Portal Invite"}
                 </button>
               </div>
-              {inviteMsg && (
-                <div className={`portal-invite-msg portal-invite-msg--${inviteStatus}`}>{inviteMsg}</div>
+
+              {inviteStatus === "error" && inviteMsg && (
+                <div className="portal-invite-msg portal-invite-msg--error">{inviteMsg}</div>
               )}
+
+              {inviteStatus === "sent" && generatedPassword && (
+                <div className="portal-credentials-box">
+                  <div className="portal-cred-title">✓ Portal account created — share these credentials with the client:</div>
+                  <div className="portal-cred-grid">
+                    <span className="portal-cred-label">Portal URL</span>
+                    <span className="portal-cred-value">{window.location.origin}/portal</span>
+                    <span className="portal-cred-label">Username</span>
+                    <span className="portal-cred-value">{selectedCustomer.email}</span>
+                    <span className="portal-cred-label">Password</span>
+                    <span className="portal-cred-value portal-cred-pw">{generatedPassword}</span>
+                  </div>
+                  <button className="portal-cred-copy" type="button" onClick={() => {
+                    navigator.clipboard.writeText(
+                      `Portal URL: ${window.location.origin}/portal\nUsername: ${selectedCustomer.email}\nPassword: ${generatedPassword}`
+                    );
+                  }}>Copy all to clipboard</button>
+                  <div className="portal-cred-note">The client can change their password after first login.</div>
+                </div>
+              )}
+
               <div style={{ marginTop: 8, fontSize: 11, color: "#999" }}>
                 Portal URL: <strong>{window.location.origin}/portal</strong>
               </div>

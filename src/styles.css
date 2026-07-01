@@ -2678,3 +2678,23 @@ td {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .dxf-modal-err { color: #c0392b; font-size: 13px; }
+
+/* Portal credentials box */
+.portal-credentials-box {
+  margin-top: 12px; background: #f0faf4; border: 1.5px solid #2ecc71;
+  border-radius: 8px; padding: 14px 16px;
+}
+.portal-cred-title { font-size: 13px; font-weight: 700; color: #1a7a40; margin-bottom: 10px; }
+.portal-cred-grid {
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 6px 12px; font-size: 13px; margin-bottom: 12px;
+}
+.portal-cred-label { color: #778; font-weight: 600; align-self: center; }
+.portal-cred-value { color: #1b2030; font-family: monospace; font-size: 13px; }
+.portal-cred-pw { font-size: 15px; font-weight: 700; color: #153f4d; letter-spacing: 1px; }
+.portal-cred-copy {
+  background: #153f4d; color: #fff; border: none; border-radius: 5px;
+  padding: 7px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.portal-cred-copy:hover { background: #0f2d38; }
+.portal-cred-note { font-size: 11px; color: #778; margin-top: 8px; }
