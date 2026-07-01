@@ -2416,7 +2416,8 @@ function QuoteWorkbench({
   const [activeQuoteTab, setActiveQuoteTab] = useState<"lines">("lines");
   const [showOthersPanel, setShowOthersPanel] = useState(false);
   const [selectedClientName, setSelectedClientName] = useState(quote.client);
-  const selectedClient = contacts.find((contact) => contact.company === selectedClientName) ?? contacts[0];
+  const allContacts = loadFromLS<Contact[]>(LS_CONTACTS, contacts);
+  const selectedClient = allContacts.find((contact) => contact.company === selectedClientName) ?? allContacts[0];
   const [selectedStaffName, setSelectedStaffName] = useState(quote.contact);
   const [quoteComments, setQuoteComments] = useState("");
   const [lineOthers, setLineOthers] = useState<Record<number, OtherLineItem[]>>(savedOthers ?? {});
@@ -2539,7 +2540,7 @@ function QuoteWorkbench({
   }, [quote.client, quote.contact, quote.quote]);
 
   const selectClientForQuote = (clientName: string) => {
-    const nextClient = contacts.find((contact) => contact.company === clientName) ?? contacts[0];
+    const nextClient = allContacts.find((contact) => contact.company === clientName) ?? allContacts[0];
     setSelectedClientName(nextClient.company);
     setSelectedStaffName(nextClient.staff[0]?.name ?? "");
   };
@@ -2743,7 +2744,7 @@ function QuoteWorkbench({
         <div className="qf2-hcol">
           <div className="qf2-hlabel">Client</div>
           <select className="qf2-hselect" onChange={(e) => selectClientForQuote(e.target.value)} value={selectedClientName}>
-            {contacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
+            {allContacts.filter((c) => splitContactTypes(c.kind).includes("Client")).map((c) => (
               <option key={c.id} value={c.company}>{c.company}</option>
             ))}
           </select>
@@ -3093,7 +3094,7 @@ function QuoteWorkbench({
               <tbody>
                 {(lineOthers[selectedLineIndex] ?? []).map((o) => {
                   const amount = o.cost * o.qty * (1 + o.markupPct / 100);
-                  const suppliers = contacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
+                  const suppliers = allContacts.filter(c => splitContactTypes(c.kind).includes("Supplier"));
                   return (
                     <tr key={o.id}>
                       <td>
