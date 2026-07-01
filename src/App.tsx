@@ -708,7 +708,7 @@ function DashboardPage() {
 }
 
 function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
-  const [contactRecords, setContactRecords] = useState<Contact[]>(contacts);
+  const [contactRecords, setContactRecords] = useState<Contact[]>(() => loadFromLS(LS_CONTACTS, contacts));
   const [searchQuery, setSearchQuery] = useState("");
   const [newNoteText, setNewNoteText] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Contact>(contacts[0]);
@@ -813,9 +813,11 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
     };
 
     setSelectedCustomer(nextCustomer);
-    setContactRecords((current) =>
-      current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact)),
-    );
+    setContactRecords((current) => {
+      const next = current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact));
+      localStorage.setItem(LS_CONTACTS, JSON.stringify(next));
+      return next;
+    });
     setNewNoteText("");
     setCustomerDetailTab("notes");
   };
@@ -827,9 +829,11 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
     };
 
     setSelectedCustomer(nextCustomer);
-    setContactRecords((current) =>
-      current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact)),
-    );
+    setContactRecords((current) => {
+      const next = current.map((contact) => (contact.id === nextCustomer.id ? nextCustomer : contact));
+      localStorage.setItem(LS_CONTACTS, JSON.stringify(next));
+      return next;
+    });
   };
 
   const selectCustomer = (contact: Contact) => {
@@ -849,11 +853,11 @@ function ContactsPage({ contactTypes }: { contactTypes: ContactTypeOption[] }) {
   const saveCustomer = () => {
     setContactRecords((current) => {
       const existingIndex = current.findIndex((contact) => contact.id === selectedCustomer.id);
-      if (existingIndex === -1) {
-        return [selectedCustomer, ...current];
-      }
-
-      return current.map((contact) => (contact.id === selectedCustomer.id ? selectedCustomer : contact));
+      const next = existingIndex === -1
+        ? [selectedCustomer, ...current]
+        : current.map((contact) => (contact.id === selectedCustomer.id ? selectedCustomer : contact));
+      localStorage.setItem(LS_CONTACTS, JSON.stringify(next));
+      return next;
     });
   };
 
@@ -1097,6 +1101,7 @@ const LS_LINES = "msf_quote_lines";
 const LS_OTHERS = "msf_quote_others";
 const LS_SUCCESSOR_OPTIONS = "msf_successor_options";
 const LS_BIZ_PROFILE = "msf_biz_profile";
+const LS_CONTACTS = "msf_contacts";
 
 type BusinessProfile = {
   name: string;
