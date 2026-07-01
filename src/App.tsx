@@ -24,6 +24,27 @@ import { materialRates, type MaterialRate } from "./materialRates";
 
 type PageId = "dashboard" | "contacts" | "quotes" | "jobs" | "materials" | "purchases" | "invoices" | "requests" | "settings";
 
+type PortalUpload = {
+  id: string;
+  client_email: string;
+  upload_type: 'dxf' | 'other';
+  file_name: string | null;
+  storage_path: string | null;
+  category: string | null;
+  description: string | null;
+  qty: number;
+  notes: string | null;
+  plate_width: number | null;
+  plate_height: number | null;
+  cut_length: number | null;
+  pierce_count: number | null;
+  holes: any[];
+  material: string | null;
+  thickness: string | null;
+  status: string;
+  created_at: string;
+};
+
 type Module = {
   id: PageId;
   title: string;
@@ -2415,6 +2436,10 @@ function QuoteWorkbench({
   const [selectedLineIndex, setSelectedLineIndex] = useState(0);
   const [activeQuoteTab, setActiveQuoteTab] = useState<"lines">("lines");
   const [showOthersPanel, setShowOthersPanel] = useState(false);
+  const [showPortalImport, setShowPortalImport] = useState(false);
+  const [portalItems, setPortalItems] = useState<PortalUpload[]>([]);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [selectedPortalIds, setSelectedPortalIds] = useState<Set<string>>(new Set());
   const [selectedClientName, setSelectedClientName] = useState(quote.client);
   const allContacts = loadFromLS<Contact[]>(LS_CONTACTS, contacts);
   const selectedClient = allContacts.find((contact) => contact.company === selectedClientName) ?? allContacts[0];
@@ -2723,6 +2748,15 @@ function QuoteWorkbench({
           <div className="qf2-bar-sep" />
           <button className="primary-action" onClick={openLineForm} type="button">+ Add Line</button>
           <button className="qf2-others-bar-btn" onClick={() => setShowOthersPanel(true)} type="button">+ Add Others</button>
+          <button className="qf2-others-bar-btn" onClick={async () => {
+            setShowPortalImport(true);
+            setSelectedPortalIds(new Set());
+            if (!supabase || !selectedClient.email) return;
+            setPortalLoading(true);
+            const { data } = await supabase.from("portal_uploads").select("*").eq("client_email", selectedClient.email).order("created_at", { ascending: false });
+            setPortalItems((data ?? []) as PortalUpload[]);
+            setPortalLoading(false);
+          }} type="button">📥 Import from Portal</button>
           {onSave && (
             <button className="qf-save-btn" onClick={() => { onSave(lineOthers); setSaveStatus("saved"); setTimeout(() => setSaveStatus("idle"), 2000); }} type="button">
               {saveStatus === "saved" ? "✓ Saved" : "💾 Save"}
@@ -3156,6 +3190,146 @@ function QuoteWorkbench({
           })()}
         </div>
       </div>
+      {/* ── Import from Portal panel ── */}
+      {showPortalImport && (
+        <div className="qf-others-overlay" onClick={() => setShowPortalImport(false)} />
+      )}
+      <div className={`qf-import-panel${showPortalImport ? " qf-import-panel--open" : ""}`}>
+        <div className="qf-others-panel-head">
+          <div>
+            <div className="qf-others-panel-title">Import from Portal</div>
+            <div className="qf-others-panel-sub">{selectedClient.email || "No client email"}</div>
+          </div>
+          <button className="qf-others-panel-close" onClick={() => setShowPortalImport(false)} type="button">✕</button>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+          {!supabase ? (
+            <div className="qf-others-panel-empty">No Supabase connection.</div>
+          ) : !selectedClient.email ? (
+            <div className="qf-others-panel-empty">Select a client with an email address first.</div>
+          ) : portalLoading ? (
+            <div className="qf-others-panel-empty">Loading portal items…</div>
+          ) : portalItems.length === 0 ? (
+            <div className="qf-others-panel-empty">No portal uploads found for {selectedClient.email}.</div>
+          ) : (
+            <>
+              {/* DXF section */}
+              {portalItems.filter(p => p.upload_type === 'dxf').length > 0 && (
+                <div className="qf-import-section">
+                  <div className="qf-import-section-title">Cutting Files (DXF)</div>
+                  {portalItems.filter(p => p.upload_type === 'dxf').map(item => (
+                    <label key={item.id} className="qf-import-item">
+                      <input
+                        type="checkbox"
+                        className="qf-import-check"
+                        checked={selectedPortalIds.has(item.id)}
+                        onChange={e => {
+                          const next = new Set(selectedPortalIds);
+                          if (e.target.checked) next.add(item.id); else next.delete(item.id);
+                          setSelectedPortalIds(next);
+                        }}
+                      />
+                      <div className="qf-import-item-info">
+                        <div className="qf-import-item-name">{item.file_name ?? "—"}</div>
+                        <div className="qf-import-item-meta">
+                          {item.plate_width && item.plate_height ? `${item.plate_width} × ${item.plate_height} mm` : ""}
+                          {item.material ? ` · ${item.material}` : ""}
+                          {item.thickness ? ` · ${item.thickness} mm` : ""}
+                          {` · Qty ${item.qty}`}
+                          {` · ${item.status}`}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {/* Others section */}
+              {portalItems.filter(p => p.upload_type === 'other').length > 0 && (
+                <div className="qf-import-section">
+                  <div className="qf-import-section-title">Others &amp; Extras</div>
+                  {portalItems.filter(p => p.upload_type === 'other').map(item => (
+                    <label key={item.id} className="qf-import-item">
+                      <input
+                        type="checkbox"
+                        className="qf-import-check"
+                        checked={selectedPortalIds.has(item.id)}
+                        onChange={e => {
+                          const next = new Set(selectedPortalIds);
+                          if (e.target.checked) next.add(item.id); else next.delete(item.id);
+                          setSelectedPortalIds(next);
+                        }}
+                      />
+                      <div className="qf-import-item-info">
+                        <div className="qf-import-item-name">{item.category ?? "OTHER"}: {item.description ?? "—"}</div>
+                        <div className="qf-import-item-meta">Qty {item.qty}{item.notes ? ` · ${item.notes}` : ""}{` · ${item.status}`}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <div style={{ padding: "12px 18px", borderTop: "1px solid #e3e8ee", flexShrink: 0 }}>
+          <button
+            className="primary-action"
+            disabled={selectedPortalIds.size === 0}
+            type="button"
+            onClick={async () => {
+              const selected = portalItems.filter(p => selectedPortalIds.has(p.id));
+              // Add DXF items as quote lines
+              for (const item of selected.filter(p => p.upload_type === 'dxf')) {
+                const rate = materialRates.find(r =>
+                  item.material && r.material.toLowerCase() === item.material.toLowerCase() &&
+                  item.thickness && Math.abs((r.thickness ?? 0) - parseFloat(item.thickness)) < 0.1
+                );
+                const draft = createBlankQuoteLineDraft();
+                const filledDraft = {
+                  ...draft,
+                  part: item.file_name ?? "Portal DXF",
+                  material: item.material ?? draft.material,
+                  thickness: item.thickness ? `${item.thickness} mm` : draft.thickness,
+                  materialRateId: rate?.id ?? draft.materialRateId,
+                  materialType: rate?.type ?? draft.materialType,
+                  feed: String(rate?.feed ?? draft.feed),
+                  costPerM2: String(rate?.costPerM2 ?? draft.costPerM2),
+                  cut: String(rate?.cutRate ?? draft.cut),
+                  pierce: String(rate?.piercingRate ?? draft.pierce),
+                  qty: String(item.qty),
+                };
+                onAddLine?.(createQuoteLineFromDraft(filledDraft));
+              }
+              // Add other items to lineOthers
+              const otherItems = selected.filter(p => p.upload_type === 'other');
+              if (otherItems.length > 0) {
+                setLineOthers(prev => {
+                  const existing = prev[selectedLineIndex] ?? [];
+                  const newRows: OtherLineItem[] = otherItems.map(item => ({
+                    id: crypto.randomUUID(),
+                    category: item.category ?? "OTHER",
+                    description: item.description ?? "",
+                    qty: item.qty,
+                    cost: 0,
+                    markupPct: 20,
+                    supplier: "",
+                    staff: "",
+                    ref: "",
+                  }));
+                  return { ...prev, [selectedLineIndex]: [...existing, ...newRows] };
+                });
+              }
+              // Mark as quoted in Supabase
+              if (supabase && selected.length > 0) {
+                await supabase.from("portal_uploads").update({ status: "quoted" }).in("id", selected.map(p => p.id));
+              }
+              setShowPortalImport(false);
+            }}
+          >
+            Add Selected to Quote ({selectedPortalIds.size})
+          </button>
+        </div>
+      </div>
+
       {/* ── DXF Viewer Modal ── */}
       {dxfViewIndex !== null && (() => {
         const dxfText = lineDxfText[dxfViewIndex];
